@@ -1,7 +1,6 @@
 'use client';
 
-import { TemplateConfig } from '@/lib/types/template.types';
-import { CVData } from '../cvs/CVEditor';
+import { TemplateConfig, CVData } from '@/lib/types/template.types';
 
 interface TemplateRendererProps {
   config: TemplateConfig;
@@ -9,16 +8,25 @@ interface TemplateRendererProps {
 }
 
 export function TemplateRenderer({ config, data }: TemplateRendererProps) {
+  const spacing =
+    typeof config.spacing === 'string'
+      ? { sectionGap: 24, itemGap: 16, padding: 24 }
+      : config.spacing;
+  const headingColor = config.colors.heading ?? config.colors.primary;
+  const sections = config.sections ?? [];
+  const showProfileImage = config.showProfileImage ?? config.showAvatar ?? false;
+  const showSocialLinks = config.showSocialLinks ?? false;
+
   const getLayoutStyle = () => {
     switch (config.layout) {
       case 'left-sidebar':
-        return { display: 'grid', gridTemplateColumns: '280px 1fr', gap: config.spacing.sectionGap };
+        return { display: 'grid', gridTemplateColumns: '280px 1fr', gap: spacing.sectionGap };
       case 'right-sidebar':
-        return { display: 'grid', gridTemplateColumns: '1fr 280px', gap: config.spacing.sectionGap };
+        return { display: 'grid', gridTemplateColumns: '1fr 280px', gap: spacing.sectionGap };
       case 'two-column':
-        return { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: config.spacing.sectionGap };
+        return { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sectionGap };
       case 'three-column':
-        return { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: config.spacing.sectionGap };
+        return { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: spacing.sectionGap };
       default:
         return { display: 'block' };
     }
@@ -31,7 +39,7 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
         fontFamily: config.fonts.body,
         color: config.colors.text,
         backgroundColor: config.colors.background,
-        padding: config.spacing.padding,
+        padding: spacing.padding,
       }}
     >
       {/* Header */}
@@ -41,8 +49,8 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
           style={{
             backgroundColor: config.colors.primary,
             color: 'white',
-            padding: config.spacing.padding,
-            marginBottom: config.spacing.sectionGap,
+            padding: spacing.padding,
+            marginBottom: spacing.sectionGap,
             borderRadius: '8px',
           }}
         >
@@ -58,18 +66,18 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
       {/* Main Layout */}
       <div style={getLayoutStyle()}>
         {/* Render enabled sections in order */}
-        {config.sections
+        {sections
           .filter(s => s.enabled)
           .sort((a, b) => a.order - b.order)
           .map(section => {
             switch (section.id) {
               case 'profile':
                 return (
-                  <div key={section.id} className="section" style={{ marginBottom: config.spacing.sectionGap }}>
-                    <h2 style={{ fontFamily: config.fonts.heading, color: config.colors.heading }}>
+                  <div key={section.id} className="section" style={{ marginBottom: spacing.sectionGap }}>
+                    <h2 style={{ fontFamily: config.fonts.heading, color: headingColor }}>
                       {section.name}
                     </h2>
-                    {config.showProfileImage && (
+                    {showProfileImage && (
                       <div className="profile-image">
                         {/* Profile image component */}
                       </div>
@@ -77,7 +85,7 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
                     <p>{data.personalInfo.summary}</p>
                     
                     {/* Contact Info */}
-                    <div className="contact-info" style={{ marginTop: config.spacing.itemGap }}>
+                    <div className="contact-info" style={{ marginTop: spacing.itemGap }}>
                       {data.personalInfo.email && (
                         <div>📧 {data.personalInfo.email}</div>
                       )}
@@ -90,8 +98,8 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
                     </div>
 
                     {/* Social Links */}
-                    {config.showSocialLinks && (
-                      <div className="social-links" style={{ marginTop: config.spacing.itemGap }}>
+                    {showSocialLinks && (
+                      <div className="social-links" style={{ marginTop: spacing.itemGap }}>
                         {data.personalInfo.linkedin && (
                           <a href={data.personalInfo.linkedin} target="_blank">LinkedIn</a>
                         )}
@@ -105,12 +113,12 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
 
               case 'experience':
                 return (
-                  <div key={section.id} className="section" style={{ marginBottom: config.spacing.sectionGap }}>
-                    <h2 style={{ fontFamily: config.fonts.heading, color: config.colors.heading }}>
+                  <div key={section.id} className="section" style={{ marginBottom: spacing.sectionGap }}>
+                    <h2 style={{ fontFamily: config.fonts.heading, color: headingColor }}>
                       {section.name}
                     </h2>
                     {data.experiences.map((exp, i) => (
-                      <div key={i} style={{ marginBottom: config.spacing.itemGap }}>
+                      <div key={i} style={{ marginBottom: spacing.itemGap }}>
                         <h3 style={{ color: config.colors.primary }}>{exp.position}</h3>
                         <p><strong>{exp.company}</strong> | {exp.location}</p>
                         <p style={{ color: config.colors.secondary }}>
@@ -128,12 +136,12 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
 
               case 'education':
                 return (
-                  <div key={section.id} className="section" style={{ marginBottom: config.spacing.sectionGap }}>
-                    <h2 style={{ fontFamily: config.fonts.heading, color: config.colors.heading }}>
+                  <div key={section.id} className="section" style={{ marginBottom: spacing.sectionGap }}>
+                    <h2 style={{ fontFamily: config.fonts.heading, color: headingColor }}>
                       {section.name}
                     </h2>
                     {data.education.map((edu, i) => (
-                      <div key={i} style={{ marginBottom: config.spacing.itemGap }}>
+                      <div key={i} style={{ marginBottom: spacing.itemGap }}>
                         <h3>{edu.degree} in {edu.field}</h3>
                         <p><strong>{edu.institution}</strong></p>
                         <p>{edu.startDate} - {edu.current ? 'Present' : edu.endDate}</p>
@@ -145,8 +153,8 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
 
               case 'skills':
                 return (
-                  <div key={section.id} className="section" style={{ marginBottom: config.spacing.sectionGap }}>
-                    <h2 style={{ fontFamily: config.fonts.heading, color: config.colors.heading }}>
+                  <div key={section.id} className="section" style={{ marginBottom: spacing.sectionGap }}>
+                    <h2 style={{ fontFamily: config.fonts.heading, color: headingColor }}>
                       {section.name}
                     </h2>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -170,8 +178,8 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
 
               case 'languages':
                 return (
-                  <div key={section.id} className="section" style={{ marginBottom: config.spacing.sectionGap }}>
-                    <h2 style={{ fontFamily: config.fonts.heading, color: config.colors.heading }}>
+                  <div key={section.id} className="section" style={{ marginBottom: spacing.sectionGap }}>
+                    <h2 style={{ fontFamily: config.fonts.heading, color: headingColor }}>
                       {section.name}
                     </h2>
                     <div style={{ display: 'grid', gap: '8px' }}>
@@ -187,12 +195,12 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
 
               case 'certifications':
                 return (
-                  <div key={section.id} className="section" style={{ marginBottom: config.spacing.sectionGap }}>
-                    <h2 style={{ fontFamily: config.fonts.heading, color: config.colors.heading }}>
+                  <div key={section.id} className="section" style={{ marginBottom: spacing.sectionGap }}>
+                    <h2 style={{ fontFamily: config.fonts.heading, color: headingColor }}>
                       {section.name}
                     </h2>
                     {data.certifications.map((cert, i) => (
-                      <div key={i} style={{ marginBottom: config.spacing.itemGap }}>
+                      <div key={i} style={{ marginBottom: spacing.itemGap }}>
                         <h3 style={{ color: config.colors.primary }}>{cert.name}</h3>
                         <p>{cert.issuer}</p>
                         <p>{cert.date}</p>
@@ -203,12 +211,12 @@ export function TemplateRenderer({ config, data }: TemplateRendererProps) {
 
               case 'projects':
                 return (
-                  <div key={section.id} className="section" style={{ marginBottom: config.spacing.sectionGap }}>
-                    <h2 style={{ fontFamily: config.fonts.heading, color: config.colors.heading }}>
+                  <div key={section.id} className="section" style={{ marginBottom: spacing.sectionGap }}>
+                    <h2 style={{ fontFamily: config.fonts.heading, color: headingColor }}>
                       {section.name}
                     </h2>
                     {data.projects.map((project, i) => (
-                      <div key={i} style={{ marginBottom: config.spacing.itemGap }}>
+                      <div key={i} style={{ marginBottom: spacing.itemGap }}>
                         <h3>{project.name}</h3>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
                           {project.technologies.map((tech, j) => (
