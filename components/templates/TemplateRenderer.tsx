@@ -1,6 +1,6 @@
 'use client';
 
-import { TemplateConfig } from '@/lib/templates/template-types';
+import { TemplateConfig } from '@/lib/types/template.types';
 import { CVData } from '../cvs/CVEditor';
 
 interface TemplateRendererProps {

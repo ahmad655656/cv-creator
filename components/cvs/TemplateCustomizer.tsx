@@ -5,7 +5,7 @@ import {
   Palette, Type, Layout, Eye, EyeOff, Move, Settings,
   ChevronUp, ChevronDown, Plus, Trash2, Save
 } from 'lucide-react';
-import { TemplateConfig, COLOR_PALETTES, FONT_OPTIONS } from '@/lib/templates/template-types';
+import { TemplateConfig, COLOR_PALETTES, FONT_OPTIONS } from '@/lib/types/template.types';
 
 interface TemplateCustomizerProps {
   template: TemplateConfig;
