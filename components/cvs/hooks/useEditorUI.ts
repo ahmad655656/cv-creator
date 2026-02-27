@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { 
   LayoutMode, SidebarPosition, PreviewDevice, 
   ThemeMode, PreviewBackground, PreviewOrientation 
-} from '../constants/editor.constants';
+} from '../editor/constants/editor.constants';
 
 export const useEditorUI = () => {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('full');

@@ -71,11 +71,13 @@ export interface Certification {
 export interface Project {
   id: string;
   name: string;
+  role?: string;
   description: string[];
   technologies: string[];
   startDate: string;
   endDate: string;
   current: boolean;
+  url?: string;
   projectUrl?: string;
   githubUrl?: string;
 }
@@ -104,7 +106,7 @@ export interface TemplateConfig {
     accent: string;
     background: string;
     text: string;
-    heading: string;
+    heading?: string;
   };
   fonts: {
     heading: string;
@@ -228,7 +230,7 @@ export interface ElementLayout {
   gridTemplateRows?: string;
 }
 // أنواع التقسيمات المتقدمة
-export type LayoutType = 'grid' | 'flex' | 'masonry' | 'timeline' | 'cards' | 'magazine';
+export type AdvancedLayoutType = 'grid' | 'flex' | 'masonry' | 'timeline' | 'cards' | 'magazine';
 export type ColumnCount = 1 | 2 | 3 | 4 | 6 | 12;
 export type GapSize = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 

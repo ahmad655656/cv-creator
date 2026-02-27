@@ -1,7 +1,7 @@
 // أنواع القوالب العالمية
 export type TemplateStyle = 'modern' | 'professional' | 'creative' | 'minimal' | 'executive' | 'academic';
 export type ColorScheme = 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'gray' | 'teal' | 'indigo';
-export type LayoutType = 'left-sidebar' | 'right-sidebar' | 'two-column' | 'three-column' | 'top-header';
+export type LayoutType = 'left-sidebar' | 'right-sidebar' | 'two-column' | 'three-column' | 'top-header' | string;
 
 export interface PersonalInfo {
   fullName: string;
@@ -90,9 +90,9 @@ export interface CVData {
 }
 
 export interface TemplateConfig {
-  id: string;
-  name: string;
-  style: TemplateStyle;
+  id?: string;
+  name?: string;
+  style?: TemplateStyle;
   layout: LayoutType;
   colors: {
     primary: string;
@@ -100,20 +100,24 @@ export interface TemplateConfig {
     accent: string;
     background: string;
     text: string;
-    heading: string;
+    heading?: string;
   };
   fonts: {
     heading: string;
     body: string;
   };
-  spacing: {
-    sectionGap: number;
-    itemGap: number;
-    padding: number;
-  };
-  showProfileImage: boolean;
-  showSocialLinks: boolean;
-  sections: {
+  spacing:
+    | {
+        sectionGap: number;
+        itemGap: number;
+        padding: number;
+      }
+    | string;
+  showProfileImage?: boolean;
+  showSocialLinks?: boolean;
+  showAvatar?: boolean;
+  showIcons?: boolean;
+  sections?: {
     id: string;
     name: string;
     enabled: boolean;
