@@ -284,8 +284,13 @@ const PreviewPanel = forwardRef<HTMLDivElement, PreviewPanelProps>((props, ref) 
   const renderTemplate = useCallback(() => {
     const normalizedSlug = template.slug.toLowerCase().replace(/[-_\s]/g, '');
     const templateProps = { data: previewData, config: templateConfig, styleOverrides };
-    const premiumProps = { ...templateProps, sectionVisibility, sectionStyles: sectionStyleOverrides, sectionOrder };
-    const fallbackProps = { data: previewData, config: templateConfig };
+    const premiumProps: any = {
+      ...templateProps,
+      sectionVisibility,
+      sectionStyles: sectionStyleOverrides,
+      sectionOrder
+    };
+    const fallbackProps: any = { data: previewData, config: templateConfig };
 
     switch (normalizedSlug) {
       case 'executive':

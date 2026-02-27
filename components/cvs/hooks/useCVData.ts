@@ -201,7 +201,8 @@ export const useCVData = () => {
       id: `cert-${Date.now()}`,
       name: '',
       issuer: '',
-      date: ''
+      date: '',
+      doesNotExpire: false
     };
     setCVData(prev => ({
       ...prev,

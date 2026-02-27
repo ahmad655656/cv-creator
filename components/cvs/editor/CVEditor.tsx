@@ -59,6 +59,15 @@ import { DEFAULT_SECTIONS } from './constants/editor.constants';
 import { Template } from './types';
 import { TemplateConfig } from './types/templateConfig';
 import type { Template as LegacyTemplate } from '../types';
+import type {
+  CVData as EditorCVData,
+  Experience as EditorExperience,
+  Education as EditorEducation,
+  Skill as EditorSkill,
+  Language as EditorLanguage,
+  Certification as EditorCertification,
+  Project as EditorProject
+} from './types';
 import { getProfessionalTemplateBySlug, mapProfessionalToEditorConfig } from '@/lib/templates/professional-templates';
 
 interface CVEditorProps {
@@ -302,7 +311,25 @@ export function CVEditor({ template, userId }: CVEditorProps) {
     setIsPreviewFullPage((prev) => !prev);
   };
 
-  const handleReorderSections = (newSections: SectionItem[]) => setSections(newSections);
+  const handleReorderSections = (
+    newSections: Array<{ id: string; title: string; enabled: boolean; icon?: string }>
+  ) => {
+    setSections((prev) => {
+      const prevById = new Map(prev.map((section) => [section.id, section]));
+      return newSections.map((section, index) => {
+        const existing = prevById.get(section.id);
+        return {
+          id: section.id,
+          type: existing?.type || section.id,
+          title: section.title,
+          enabled: section.enabled,
+          order: index + 1,
+          icon: section.icon || existing?.icon,
+          fields: existing?.fields
+        };
+      });
+    });
+  };
 
   const handleToggleSection = (sectionId: string) => {
     setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, enabled: !s.enabled } : s)));
@@ -423,9 +450,11 @@ export function CVEditor({ template, userId }: CVEditorProps) {
       ),
       experience: (
         <ExperienceForm
-          experiences={cvData.experiences}
+          experiences={cvData.experiences as EditorExperience[]}
           addExperience={cvActions.addExperience}
-          updateExperience={cvActions.updateExperience}
+          updateExperience={(id, field, value) =>
+            cvActions.updateExperience(id, field as Parameters<typeof cvActions.updateExperience>[1], value)
+          }
           updateExperienceDescription={cvActions.updateExperienceDescription}
           addExperienceDescription={cvActions.addExperienceDescription}
           removeExperienceDescription={cvActions.removeExperienceDescription}
@@ -434,41 +463,55 @@ export function CVEditor({ template, userId }: CVEditorProps) {
       ),
       education: (
         <EducationForm
-          education={cvData.education}
+          education={cvData.education as EditorEducation[]}
           addEducation={cvActions.addEducation}
-          updateEducation={cvActions.updateEducation}
+          updateEducation={(id, field, value) =>
+            cvActions.updateEducation(id, field as Parameters<typeof cvActions.updateEducation>[1], value)
+          }
           removeEducation={cvActions.removeEducation}
         />
       ),
       skills: (
         <SkillsForm
-          skills={cvData.skills}
+          skills={cvData.skills as EditorSkill[]}
           addSkill={cvActions.addSkill}
-          updateSkill={cvActions.updateSkill}
+          updateSkill={(id, field, value) =>
+            cvActions.updateSkill(id, field as Parameters<typeof cvActions.updateSkill>[1], value)
+          }
           removeSkill={cvActions.removeSkill}
         />
       ),
       languages: (
         <LanguagesForm
-          languages={cvData.languages}
+          languages={cvData.languages as unknown as EditorLanguage[]}
           addLanguage={cvActions.addLanguage}
-          updateLanguage={cvActions.updateLanguage}
+          updateLanguage={(id, field, value) =>
+            cvActions.updateLanguage(id, field as Parameters<typeof cvActions.updateLanguage>[1], value)
+          }
           removeLanguage={cvActions.removeLanguage}
         />
       ),
       certifications: (
         <CertificationsForm
-          certifications={cvData.certifications}
+          certifications={cvData.certifications as EditorCertification[]}
           addCertification={cvActions.addCertification}
-          updateCertification={cvActions.updateCertification}
+          updateCertification={(id, field, value) =>
+            cvActions.updateCertification(
+              id,
+              field as Parameters<typeof cvActions.updateCertification>[1],
+              value
+            )
+          }
           removeCertification={cvActions.removeCertification}
         />
       ),
       projects: (
         <ProjectsForm
-          projects={cvData.projects}
+          projects={cvData.projects as EditorProject[]}
           addProject={cvActions.addProject}
-          updateProject={cvActions.updateProject}
+          updateProject={(id, field, value) =>
+            cvActions.updateProject(id, field as Parameters<typeof cvActions.updateProject>[1], value)
+          }
           updateProjectDescription={cvActions.updateProjectDescription}
           addProjectDescription={cvActions.addProjectDescription}
           removeProjectDescription={cvActions.removeProjectDescription}
@@ -644,7 +687,7 @@ export function CVEditor({ template, userId }: CVEditorProps) {
                   sections={sections}
                   onReorder={handleReorderSections}
                   onToggleSection={handleToggleSection}
-                  onEditSection={(id) => setEditingSection(sections.find((s) => s.id === id))}
+                  onEditSection={(id) => setEditingSection(sections.find((s) => s.id === id) || null)}
                   onDeleteSection={(id) => {
                     if (id === 'personal') {
                       showNotification('لا يمكن حذف قسم المعلومات الشخصية', 'error');
@@ -752,7 +795,7 @@ export function CVEditor({ template, userId }: CVEditorProps) {
                   showGrid={ui.showGrid}
                   templateConfig={safeTemplateConfig}
                   template={template}
-                  cvData={cvData}
+                  cvData={cvData as unknown as EditorCVData}
                   sections={sections.map((s) => ({ id: s.id, title: s.title, enabled: s.enabled, order: s.order }))}
                   styleOverrides={styleOverrides}
                   sectionStyleOverrides={sectionStyleOverrides}
@@ -776,16 +819,16 @@ export function CVEditor({ template, userId }: CVEditorProps) {
                   onSectionToggle={handleToggleSection}
                   onSectionMove={handleMoveSection}
                   onOrientationToggle={() =>
-                    ui.setPreviewOrientation((prev) =>
+                    ui.setPreviewOrientation((prev: 'portrait' | 'landscape') =>
                       prev === 'portrait' ? 'landscape' : 'portrait'
                     )
                   }
                   onBackgroundChange={() =>
-                    ui.setPreviewBackground((prev) =>
+                    ui.setPreviewBackground((prev: 'white' | 'gray' | 'dark' | 'mesh') =>
                       prev === 'white' ? 'gray' : prev === 'gray' ? 'dark' : 'white'
                     )
                   }
-                  onGridToggle={() => ui.setShowGrid((prev) => !prev)}
+                  onGridToggle={() => ui.setShowGrid((prev: boolean) => !prev)}
                   onResize={ui.setPreviewWidth}
                 />
               </div>
@@ -819,7 +862,9 @@ export function CVEditor({ template, userId }: CVEditorProps) {
             section={editingSection}
             onClose={() => setEditingSection(null)}
             onSave={(updatedSection) => {
-              setSections((prev) => prev.map((s) => (s.id === updatedSection.id ? updatedSection : s)));
+              setSections((prev) =>
+                prev.map((s) => (s.id === updatedSection.id ? { ...s, ...updatedSection } : s))
+              );
               setEditingSection(null);
             }}
           />

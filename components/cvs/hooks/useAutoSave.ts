@@ -20,7 +20,7 @@ export const useAutoSave = (
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousDataRef = useRef<CVData>(data);
 
   const saveToServer = useCallback(async (dataToSave: CVData) => {
