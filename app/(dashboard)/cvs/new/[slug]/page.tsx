@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth/auth";
 import { redirect, notFound } from "next/navigation";
 import { neon } from "@neondatabase/serverless";
 import { CVEditor } from "@/components/cvs/editor/CVEditor";
+import type { Template } from "@/components/cvs/editor/types";
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -39,9 +40,17 @@ export default async function EditCVPage({ params }: PageProps) {
     notFound();
   }
 
-  const template = templates[0];
+  const templateRow = templates[0];
+  const template: Template = {
+    id: String(templateRow.id),
+    name: String(templateRow.name ?? "Template"),
+    slug: String(templateRow.slug ?? slug),
+    category: String(templateRow.category ?? "professional"),
+    description: String(templateRow.description ?? ""),
+    thumbnail: String(templateRow.thumbnail ?? ""),
+  };
 
-  if (!template.is_premium) {
+  if (!templateRow.is_premium) {
     redirect("/templates");
   }
 
@@ -53,7 +62,7 @@ export default async function EditCVPage({ params }: PageProps) {
     FROM payments
     WHERE user_id = ${userId}
       AND status = 'approved'
-      AND (template_id = ${template.id} OR template_id = 0)
+      AND (template_id = ${templateRow.id} OR template_id = 0)
     LIMIT 1
   `;
 

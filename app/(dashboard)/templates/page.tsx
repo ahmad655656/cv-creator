@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth/auth';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import { TemplateShowcase } from '@/components/templates/TemplateShowcase';
+import type { TemplateConfig } from '@/components/cvs/editor/types/templateConfig';
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -16,11 +17,26 @@ export default async function TemplatesPage() {
     WHERE is_premium = true
     ORDER BY price DESC, name
   `;
+  const normalizedTemplates = templates.map((template) => ({
+    id: Number(template.id),
+    name: String(template.name ?? 'Template'),
+    slug: String(template.slug ?? ''),
+    config: (template.config ?? null) as
+      | (Partial<TemplateConfig> & { pageTier?: 'one-page' | 'two-page' })
+      | null,
+    description: String(template.description ?? ''),
+    category: String(template.category ?? 'General'),
+    thumbnail: String(template.thumbnail ?? ''),
+    is_premium: Boolean(template.is_premium),
+    price: Number(template.price ?? 0),
+    rating: Number(template.rating ?? 0),
+    downloads: Number(template.downloads ?? 0),
+  }));
 
   // جلب اشتراكات المستخدم
   const userPurchases = await sql`
     SELECT template_id FROM payments 
-    WHERE user_id = ${parseInt(session.user.id)} 
+    WHERE user_id = ${Number.parseInt(session.user.id, 10)} 
     AND status = 'approved'
   `;
 
@@ -45,9 +61,9 @@ export default async function TemplatesPage() {
       {/* Template Showcase */}
       <div className="container mx-auto px-4 py-8">
         <TemplateShowcase 
-          templates={templates} 
+          templates={normalizedTemplates} 
           purchasedTemplates={purchasedTemplateIds}
-          userId={parseInt(session.user?.id)}
+          userId={Number.parseInt(session.user.id, 10)}
         />
       </div>
     </div>

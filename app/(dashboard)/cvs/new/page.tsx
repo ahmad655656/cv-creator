@@ -19,6 +19,12 @@ export default async function NewCVPage() {
     WHERE is_premium = true
     ORDER BY name
   `;
+  const normalizedTemplates = templates.map((template) => ({
+    id: Number(template.id),
+    name: String(template.name ?? 'Template'),
+    slug: String(template.slug ?? ''),
+    is_premium: Boolean(template.is_premium),
+  }));
 
   console.log('Available templates:', templates.map(t => ({ name: t.name, slug: t.slug }))); // للتشخيص
 
@@ -34,7 +40,7 @@ export default async function NewCVPage() {
 
       {/* Template Gallery */}
       <div className="container mx-auto px-4 py-8">
-        <TemplateGallery templates={templates} />
+        <TemplateGallery templates={normalizedTemplates} />
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const result = registerSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(
-        { error: result.error.errors[0].message },
+        { error: result.error.issues[0]?.message ?? 'Invalid registration data' },
         { status: 400 }
       );
     }

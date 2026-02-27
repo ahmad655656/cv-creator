@@ -29,14 +29,34 @@ export default async function AdminPaymentsPage() {
     LEFT JOIN templates t ON p.template_id = t.id
     ORDER BY p.created_at DESC
   `;
+  const normalizedPayments = payments.map((payment) => ({
+    id: Number(payment.id),
+    user_id: Number(payment.user_id),
+    user_name: String(payment.user_name ?? ''),
+    user_email: String(payment.user_email ?? ''),
+    template_id: Number(payment.template_id ?? 0),
+    template_name:
+      Number(payment.template_id ?? 0) === 0
+        ? 'Comprehensive Bundle'
+        : String(payment.template_name ?? 'Template'),
+    amount: Number(payment.amount ?? 0),
+    sender_number: String(payment.sender_number ?? ''),
+    receiver_number: String(payment.receiver_number ?? ''),
+    transaction_date: new Date(payment.transaction_date as string | Date).toISOString(),
+    screenshot: payment.screenshot ? String(payment.screenshot) : null,
+    status: String(payment.status ?? 'pending') as 'pending' | 'approved' | 'rejected',
+    admin_notes: payment.admin_notes ? String(payment.admin_notes) : null,
+    created_at: new Date(payment.created_at as string | Date).toISOString(),
+    payment_type: (String(payment.payment_type ?? 'single') as 'single' | 'bundle'),
+  }));
 
   // إحصائيات المدفوعات
   const stats = {
-    total: payments.length,
-    pending: payments.filter(p => p.status === 'pending').length,
-    approved: payments.filter(p => p.status === 'approved').length,
-    rejected: payments.filter(p => p.status === 'rejected').length,
-    totalRevenue: payments
+    total: normalizedPayments.length,
+    pending: normalizedPayments.filter(p => p.status === 'pending').length,
+    approved: normalizedPayments.filter(p => p.status === 'approved').length,
+    rejected: normalizedPayments.filter(p => p.status === 'rejected').length,
+    totalRevenue: normalizedPayments
       .filter(p => p.status === 'approved')
       .reduce((sum, p) => sum + p.amount, 0)
   };
@@ -81,7 +101,7 @@ export default async function AdminPaymentsPage() {
         </div>
 
         {/* مدير المدفوعات */}
-        <PaymentsManager payments={payments} />
+        <PaymentsManager payments={normalizedPayments} />
       </div>
     </div>
   );

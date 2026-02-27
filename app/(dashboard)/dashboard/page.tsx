@@ -97,18 +97,40 @@ export default async function DashboardPage() {
   
   // باقي كود المستخدم العادي...
   // جلب السير الذاتية للمستخدم
-  const cvs = await sql`
-    SELECT c.*, t.name as template_name, t.thumbnail as template_thumbnail, t.is_premium
+  const cvsRaw = await sql`
+    SELECT
+      c.id,
+      c.title,
+      COALESCE(t.name, 'Template') as template_name,
+      t.thumbnail as template_thumbnail,
+      c.is_public as is_published,
+      c.views,
+      c.downloads,
+      c.share_id,
+      c.updated_at,
+      c.created_at
     FROM cvs c
     LEFT JOIN templates t ON c.template_id = t.slug
-    WHERE c.user_id = ${parseInt(session.user?.id)}
+    WHERE c.user_id = ${Number.parseInt(session.user.id, 10)}
     ORDER BY c.updated_at DESC
   `;
+  const cvs = cvsRaw.map((cv) => ({
+    id: Number(cv.id),
+    title: String(cv.title ?? ''),
+    template_name: String(cv.template_name ?? 'Template'),
+    template_thumbnail: cv.template_thumbnail ? String(cv.template_thumbnail) : null,
+    is_published: Boolean(cv.is_published),
+    views: Number(cv.views ?? 0),
+    downloads: Number(cv.downloads ?? 0),
+    share_id: String(cv.share_id ?? ''),
+    updated_at: new Date(cv.updated_at as string | Date).toISOString(),
+    created_at: new Date(cv.created_at as string | Date).toISOString(),
+  }));
 
   // التحقق من وجود باقة شاملة للمستخدم
   const userBundle = await sql`
     SELECT * FROM payments 
-    WHERE user_id = ${parseInt(session.user?.id)} 
+    WHERE user_id = ${Number.parseInt(session.user.id, 10)} 
     AND template_id = 0 
     AND status = 'approved'
     LIMIT 1
@@ -121,7 +143,7 @@ export default async function DashboardPage() {
     SELECT t.* 
     FROM templates t
     JOIN payments p ON t.id = p.template_id
-    WHERE p.user_id = ${parseInt(session.user?.id)} 
+    WHERE p.user_id = ${Number.parseInt(session.user.id, 10)} 
     AND p.status = 'approved'
     AND p.template_id != 0
     AND t.is_premium = true
