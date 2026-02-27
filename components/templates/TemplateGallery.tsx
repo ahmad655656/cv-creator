@@ -18,6 +18,7 @@ import {
 } from '@/components/templates/premium/PremiumTemplates';
 import { getProfessionalTemplateBySlug, mapProfessionalToEditorConfig } from '@/lib/templates/professional-templates';
 import { TEMPLATE_PREVIEW_DATA } from '@/components/templates/premium/previewData';
+import type { TemplateConfig } from '@/components/cvs/editor/types/templateConfig';
 
 interface TemplateItem {
   id: number;
@@ -26,10 +27,42 @@ interface TemplateItem {
   is_premium: boolean;
 }
 
+const DEFAULT_PREVIEW_CONFIG: TemplateConfig = {
+  primaryColor: '#2563eb',
+  secondaryColor: '#4f46e5',
+  headingColor: '#0f172a',
+  textColor: '#334155',
+  mutedTextColor: '#64748b',
+  headerTextColor: '#ffffff',
+  pageColor: '#ffffff',
+  background: 'light',
+  fontFamily: 'Cairo',
+  headingFontFamily: 'Cairo',
+  fontSize: 'medium',
+  lineHeight: 1.5,
+  nameSize: 40,
+  titleSize: 22,
+  sectionTitleSize: 22,
+  bodySize: 14,
+  sectionSpacing: 24,
+  blockSpacing: 14,
+  pagePadding: 32,
+  pageWidth: 860,
+  margins: 'normal',
+  showBorders: true,
+  borderWidth: 1,
+  showShadows: true,
+  roundedCorners: true,
+  radiusSize: 16,
+  presetLocked: false
+};
+
 function TemplateCardLivePreview({ slug }: { slug: string }) {
   const normalizedSlug = slug.toLowerCase().replace(/[-_\s]/g, '');
   const professionalTemplate = getProfessionalTemplateBySlug(slug);
-  const config = professionalTemplate ? mapProfessionalToEditorConfig(professionalTemplate) : undefined;
+  const config: TemplateConfig | undefined = professionalTemplate
+    ? { ...DEFAULT_PREVIEW_CONFIG, ...mapProfessionalToEditorConfig(professionalTemplate) }
+    : undefined;
   const props = { data: TEMPLATE_PREVIEW_DATA, config };
 
   const node = (() => {
