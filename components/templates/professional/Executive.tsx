@@ -116,7 +116,7 @@ export const ExecutiveTemplate: React.FC<ExecutiveTemplateProps> = ({ data }) =>
                 {data.languages.map((lang) => (
                   <div key={lang.id} className="flex justify-between">
                     <span className="font-medium">{lang.name}</span>
-                    <span className="text-gray-500">{lang.level}</span>
+                    <span className="text-gray-500">{lang.proficiency}</span>
                   </div>
                 ))}
               </div>
