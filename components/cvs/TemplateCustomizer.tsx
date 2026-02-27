@@ -14,6 +14,7 @@ interface TemplateCustomizerProps {
 
 export function TemplateCustomizer({ template, onUpdate }: TemplateCustomizerProps) {
   const [activeTab, setActiveTab] = useState<'colors' | 'fonts' | 'layout' | 'sections'>('colors');
+  const sections = template.sections ?? [];
 
   const updateColor = (key: keyof typeof template.colors, value: string) => {
     onUpdate({
@@ -40,20 +41,20 @@ export function TemplateCustomizer({ template, onUpdate }: TemplateCustomizerPro
   const toggleSection = (sectionId: string) => {
     onUpdate({
       ...template,
-      sections: template.sections.map(s => 
+      sections: sections.map(s => 
         s.id === sectionId ? { ...s, enabled: !s.enabled } : s
       )
     });
   };
 
   const moveSection = (sectionId: string, direction: 'up' | 'down') => {
-    const index = template.sections.findIndex(s => s.id === sectionId);
+    const index = sections.findIndex(s => s.id === sectionId);
     if (
       (direction === 'up' && index === 0) || 
-      (direction === 'down' && index === template.sections.length - 1)
+      (direction === 'down' && index === sections.length - 1)
     ) return;
 
-    const newSections = [...template.sections];
+    const newSections = [...sections];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     [newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]];
     
@@ -238,7 +239,7 @@ export function TemplateCustomizer({ template, onUpdate }: TemplateCustomizerPro
         {/* Sections Tab */}
         {activeTab === 'sections' && (
           <div className="space-y-3">
-            {template.sections.map((section, index) => (
+            {sections.map((section, index) => (
               <div
                 key={section.id}
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
@@ -260,7 +261,7 @@ export function TemplateCustomizer({ template, onUpdate }: TemplateCustomizerPro
                   </button>
                   <button
                     onClick={() => moveSection(section.id, 'down')}
-                    disabled={index === template.sections.length - 1}
+                    disabled={index === sections.length - 1}
                     className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-30"
                   >
                     <ChevronDown size={16} />
