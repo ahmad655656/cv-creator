@@ -28,8 +28,8 @@ export const CreativeTemplate: React.FC<{ data: CVData }> = ({ data }) => {
         <div className="relative h-48 bg-gradient-to-r from-pink-500 to-purple-600">
           <div className="absolute -bottom-16 left-12">
             <div className="w-32 h-32 rounded-2xl bg-white shadow-xl flex items-center justify-center overflow-hidden">
-              {data.personalInfo.avatar ? (
-                <img src={data.personalInfo.avatar} alt="" className="w-full h-full object-cover" />
+              {data.personalInfo.profileImage ? (
+                <img src={data.personalInfo.profileImage} alt="" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-4xl text-pink-500 font-bold">
                   {data.personalInfo.fullName.charAt(0)}

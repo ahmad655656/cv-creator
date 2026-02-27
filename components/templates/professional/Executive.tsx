@@ -34,9 +34,9 @@ export const ExecutiveTemplate: React.FC<ExecutiveTemplateProps> = ({ data }) =>
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-900 to-blue-700 p-8 text-white">
           <div className="flex items-center gap-6">
-            {data.personalInfo.avatar && (
+            {data.personalInfo.profileImage && (
               <img 
-                src={data.personalInfo.avatar} 
+                src={data.personalInfo.profileImage} 
                 alt={data.personalInfo.fullName}
                 className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
               />
