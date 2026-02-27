@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { 
   CheckCircle, AlertCircle, Phone, Calendar, Upload, X, 
@@ -11,7 +11,6 @@ import Link from 'next/link';
 
 export default function BundlePaymentPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   
   const [step, setStep] = useState(1);
