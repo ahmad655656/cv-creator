@@ -1,8 +1,8 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth';
-import { redirect, notFound } from 'next/navigation';
-import { neon } from '@neondatabase/serverless';
-import { CVEditor } from '@/components/cvs/editor/CVEditor';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/auth";
+import { redirect, notFound } from "next/navigation";
+import { neon } from "@neondatabase/serverless";
+import { CVEditor } from "@/components/cvs/editor/CVEditor";
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -13,19 +13,41 @@ interface PageProps {
 export default async function EditCVPage({ params }: PageProps) {
   const { slug } = await params;
 
+  /* =========================
+     Session Check
+  ========================= */
   const session = await getServerSession(authOptions);
-  if (!session) redirect('/login');
 
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const userId = Number(session.user.id);
+
+  if (isNaN(userId)) {
+    redirect("/login");
+  }
+
+  /* =========================
+     Get Template
+  ========================= */
   const templates = await sql`
-    SELECT * FROM templates WHERE slug = ${slug}
+    SELECT * FROM templates WHERE slug = ${slug} LIMIT 1
   `;
 
+  if (!templates.length) {
+    notFound();
+  }
+
   const template = templates[0];
-  if (!template) notFound();
-  if (!template.is_premium) redirect('/templates');
 
-  const userId = parseInt(session.user.id, 10);
+  if (!template.is_premium) {
+    redirect("/templates");
+  }
 
+  /* =========================
+     Check Purchase
+  ========================= */
   const purchase = await sql`
     SELECT id
     FROM payments
@@ -39,25 +61,32 @@ export default async function EditCVPage({ params }: PageProps) {
     redirect(`/templates?locked=${slug}`);
   }
 
+  /* =========================
+     Render Page
+  ========================= */
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b dark:border-gray-800 px-4 py-2 shadow-sm">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-              {template.name.charAt(0)}
+              {template.name?.charAt(0) ?? "T"}
             </div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{template.name}</h1>
+
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {template.name}
+            </h1>
+
             <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full text-xs font-medium">
               {template.category}
             </span>
           </div>
 
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            {new Date().toLocaleDateString('ar-EG', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
+            {new Date().toLocaleDateString("ar-EG", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
             })}
           </div>
         </div>
