@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       sectionVisibility,
       sectionOrder,
       sectionStyleOverrides
-    }) as unknown as React.ReactElement;
+    }) as Parameters<typeof renderToBuffer>[0];
 
     const pdfBuffer = await renderToBuffer(pdfElement);
 

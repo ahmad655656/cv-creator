@@ -3,6 +3,92 @@ export type TemplateStyle = 'modern' | 'professional' | 'creative' | 'minimal' |
 export type ColorScheme = 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'gray' | 'teal' | 'indigo';
 export type LayoutType = 'left-sidebar' | 'right-sidebar' | 'two-column' | 'three-column' | 'top-header';
 
+export interface PersonalInfo {
+  fullName: string;
+  jobTitle: string;
+  email: string;
+  phone: string;
+  address: string;
+  summary: string;
+  website?: string;
+  linkedin?: string;
+  github?: string;
+  birthDate?: string;
+  nationality?: string;
+  profileImage?: string;
+}
+
+export interface Experience {
+  id: string;
+  company: string;
+  position: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string[];
+}
+
+export interface Education {
+  id: string;
+  institution: string;
+  degree: string;
+  field: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  grade?: string;
+  description?: string;
+}
+
+export interface Skill {
+  id: string;
+  name: string;
+  level: number;
+  category?: string;
+}
+
+export interface Language {
+  id: string;
+  name: string;
+  proficiency: string;
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+  expiryDate?: string;
+  credentialId?: string;
+  credentialUrl?: string;
+  doesNotExpire?: boolean;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  role?: string;
+  description: string[];
+  technologies: string[];
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  url?: string;
+  projectUrl?: string;
+  githubUrl?: string;
+}
+
+export interface CVData {
+  personalInfo: PersonalInfo;
+  experiences: Experience[];
+  education: Education[];
+  skills: Skill[];
+  languages: Language[];
+  certifications: Certification[];
+  projects: Project[];
+}
+
 export interface TemplateConfig {
   id: string;
   name: string;

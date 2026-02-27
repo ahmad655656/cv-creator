@@ -1,7 +1,7 @@
 // components/editor/CVEditor.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Layout,
@@ -58,6 +58,7 @@ import { SECTIONS } from './constants';
 import { DEFAULT_SECTIONS } from './constants/editor.constants';
 import { Template } from './types';
 import { TemplateConfig } from './types/templateConfig';
+import type { Template as LegacyTemplate } from '../types';
 import { getProfessionalTemplateBySlug, mapProfessionalToEditorConfig } from '@/lib/templates/professional-templates';
 
 interface CVEditorProps {
@@ -107,7 +108,9 @@ type SectionItem = {
 
 type EditableSelection = {
   id: string;
-  [key: string]: unknown;
+  type?: string;
+  content?: string;
+  style?: Record<string, string | number>;
 };
 
 function ActionButton({
@@ -160,7 +163,9 @@ export function CVEditor({ template, userId }: CVEditorProps) {
     Record<string, Record<string, string | number>>
   >({});
 
-  const [sections, setSections] = useState<SectionItem[]>(DEFAULT_SECTIONS as SectionItem[]);
+  const [sections, setSections] = useState<SectionItem[]>(
+    () => DEFAULT_SECTIONS.map((section) => ({ ...section }))
+  );
   const resolvedTemplateDefaults = useMemo(() => {
     const paidTemplate = getProfessionalTemplateBySlug(template.slug);
     if (!paidTemplate) return DEFAULT_TEMPLATE_CONFIG;
@@ -177,9 +182,19 @@ export function CVEditor({ template, userId }: CVEditorProps) {
     () => ({ ...resolvedTemplateDefaults, ...templateConfig }),
     [resolvedTemplateDefaults, templateConfig]
   );
+  const autoSaveTemplate = useMemo<LegacyTemplate>(
+    () => ({
+      id: Number.parseInt(template.id, 10) || 0,
+      name: template.name,
+      slug: template.slug,
+      category: template.category,
+      description: template.description
+    }),
+    [template]
+  );
 
   const { cvData, ...cvActions } = useCVData();
-  const { saving, lastSaved, saveStatus, handleSave } = useAutoSave(cvData, template, userId);
+  const { saving, lastSaved, saveStatus, handleSave } = useAutoSave(cvData, autoSaveTemplate, userId);
   const ui = useEditorUI();
   const previewPanelWidth = ui.isMobile ? Math.max(ui.previewWidth, 380) : ui.previewWidth;
   const { notifications, unreadCount, showNotification, markAllAsRead } =
@@ -399,7 +414,7 @@ export function CVEditor({ template, userId }: CVEditorProps) {
       );
     }
 
-    const forms: Record<string, JSX.Element> = {
+    const forms: Record<string, ReactNode> = {
       personal: (
         <PersonalInfoForm
           personalInfo={cvData.personalInfo}
