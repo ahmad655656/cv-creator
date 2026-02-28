@@ -172,7 +172,8 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
       });
     } catch (error) {
       console.error('Download template error:', error);
-      alert('تعذر تحميل ملف PDF. حاول مرة أخرى.');
+      const message = error instanceof Error ? error.message : 'تعذر تحميل ملف PDF. حاول مرة أخرى.';
+      alert(message);
     } finally {
       setDownloadingTemplateId(null);
     }

@@ -1,6 +1,8 @@
 ﻿'use client';
 
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF as JsPdf } from 'jspdf';
 import { renderPremiumTemplateNode } from '@/components/templates/premium/renderTemplateNode';
 import type { TemplateConfig } from '@/lib/types/template-config';
 
@@ -238,12 +240,6 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
   };
 
   const generateClientSidePdfBlob = async (sourceElement: HTMLElement) => {
-    const [{ default: html2canvas }, jspdfModule] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf')
-    ]);
-    const JsPdf = jspdfModule.jsPDF;
-
     const canvas = await html2canvas(sourceElement, {
       scale: 2,
       useCORS: true,
@@ -271,6 +267,26 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
     }
 
     return pdf.output('blob') as Blob;
+  };
+
+  const openPrintFallback = (title: string, slug: string, content: string) => {
+    const html = buildHtmlForServerPdf(title, slug, content);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      throw new Error('Unable to open print window');
+    }
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    const triggerPrint = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+    if (printWindow.document.readyState === 'complete') {
+      triggerPrint();
+    } else {
+      printWindow.onload = triggerPrint;
+    }
   };
 
   const generateTemplatePdfBlob = async (template: TemplatePdfExporterTemplate) => {
@@ -321,6 +337,10 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
       }
 
       return await response.blob();
+    } catch (error) {
+      console.warn('All PDF export methods failed. Falling back to print dialog.', error);
+      openPrintFallback(safeName, template.slug, sourceElement.innerHTML);
+      throw new Error('تعذر إنشاء ملف PDF تلقائياً. تم فتح نافذة الطباعة للحفظ كـ PDF.');
     } finally {
       setExportTemplate(null);
     }
