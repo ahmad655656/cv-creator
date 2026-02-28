@@ -1,9 +1,12 @@
 // components/editor/hooks/useEditorUI.ts
 import { useState, useEffect, useCallback } from 'react';
-import type { 
-  LayoutMode, SidebarPosition, PreviewDevice, 
-  ThemeMode, PreviewBackground, PreviewOrientation 
-} from '../editor/constants/editor.constants';
+
+type LayoutMode = 'full' | 'compact' | 'minimal';
+type SidebarPosition = 'left' | 'right' | 'bottom' | 'hidden';
+type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
+type ThemeMode = 'light' | 'dark' | 'system';
+type PreviewBackground = 'white' | 'grid' | 'gray';
+type PreviewOrientation = 'portrait' | 'landscape';
 
 export const useEditorUI = () => {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('full');
@@ -42,14 +45,14 @@ export const useEditorUI = () => {
     const nextMode = modes[(modes.indexOf(layoutMode) + 1) % modes.length];
     setLayoutMode(nextMode);
     
-    const widths = { full: 320, compact: 280, minimal: 240 };
+    const widths: Record<LayoutMode, number> = { full: 320, compact: 280, minimal: 240 };
     setSidebarWidth(widths[nextMode]);
     setPreviewWidth(nextMode === 'full' ? 920 : nextMode === 'compact' ? 860 : 780);
   }, [layoutMode]);
 
   const cycleSidebarPosition = useCallback(() => {
     const positions: SidebarPosition[] = ['left', 'right', 'bottom', 'hidden'];
-    setSidebarPosition(prev => positions[(positions.indexOf(prev) + 1) % positions.length]);
+    setSidebarPosition((prev: SidebarPosition) => positions[(positions.indexOf(prev) + 1) % positions.length]);
   }, []);
 
   const zoomIn = useCallback(() => setPreviewZoom(prev => Math.min(prev + 0.1, 2)), []);
