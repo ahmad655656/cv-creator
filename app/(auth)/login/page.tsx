@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,17 +18,19 @@ export default function LoginPage() {
     setError('');
 
     try {
+      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
+        callbackUrl,
       });
 
       if (result?.error) {
         setError(result.error);
       } else {
-        router.push('/dashboard');
-        router.refresh();
+        const targetUrl = result?.url || callbackUrl;
+        window.location.assign(targetUrl);
       }
     } catch (err) {
       setError('حدث خطأ غير متوقع');

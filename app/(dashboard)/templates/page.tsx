@@ -11,12 +11,12 @@ export default async function TemplatesPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
 
-  // جلب القوالب من قاعدة البيانات
   const templates = await sql`
     SELECT * FROM templates
     WHERE is_premium = true
     ORDER BY price DESC, name
   `;
+
   const normalizedTemplates = templates.map((template) => ({
     id: Number(template.id),
     name: String(template.name ?? 'Template'),
@@ -33,38 +33,36 @@ export default async function TemplatesPage() {
     downloads: Number(template.downloads ?? 0),
   }));
 
-  // جلب اشتراكات المستخدم
   const userPurchases = await sql`
-    SELECT template_id FROM payments 
-    WHERE user_id = ${Number.parseInt(session.user.id, 10)} 
+    SELECT template_id FROM payments
+    WHERE user_id = ${Number.parseInt(session.user.id, 10)}
     AND status = 'approved'
   `;
 
-  const purchasedTemplateIds = new Set(
-    userPurchases.map(p => p.template_id)
-  );
+  const purchasedTemplateIds = new Set(userPurchases.map((p) => p.template_id));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-900 border-b dark:border-gray-800 shadow-sm">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            قوالب احترافية معتمدة عالمياً
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 max-w-2xl">
-            اختر القالب المناسب لمجالك. جميع القوالب مصممة وفق أحدث المعايير العالمية ومتوافقة مع أنظمة ATS
+    <div className="min-h-screen bg-[radial-gradient(800px_400px_at_90%_-20%,#dbeafe_0%,transparent_60%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_55%,#ffffff_100%)] dark:bg-[radial-gradient(800px_400px_at_90%_-20%,#1e3a8a_0%,transparent_60%),linear-gradient(180deg,#0b1220_0%,#0f172a_55%,#020617_100%)]">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        <section className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm p-5 sm:p-8 shadow-sm">
+          <p className="inline-flex rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 px-3 py-1 text-xs font-semibold">
+            Premium CV Collection
           </p>
-        </div>
-      </div>
+          <h1 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-slate-100">
+            قوالب احترافية بتجربة عرض أوضح
+          </h1>
+          <p className="mt-3 max-w-3xl text-sm sm:text-base text-slate-600 dark:text-slate-300">
+            اختر قالبك من معرض متجاوب مصمم للموبايل واللابتوب، مع معاينة واضحة ودقيقة قبل الشراء أو التحميل.
+          </p>
+        </section>
 
-      {/* Template Showcase */}
-      <div className="container mx-auto px-4 py-8">
-        <TemplateShowcase 
-          templates={normalizedTemplates} 
-          purchasedTemplates={purchasedTemplateIds}
-          userId={Number.parseInt(session.user.id, 10)}
-        />
+        <div className="mt-6 sm:mt-8">
+          <TemplateShowcase
+            templates={normalizedTemplates}
+            purchasedTemplates={purchasedTemplateIds}
+            userId={Number.parseInt(session.user.id, 10)}
+          />
+        </div>
       </div>
     </div>
   );

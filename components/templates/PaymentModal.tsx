@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { X, Upload, CheckCircle, AlertCircle, Phone, Calendar, CreditCard } from 'lucide-react';
-import Image from 'next/image';
 
 interface PaymentModalProps {
   template: {
@@ -34,8 +33,8 @@ export function PaymentModal({ template, userId, onClose, onSuccess }: PaymentMo
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
+    if (file.size > 2 * 1024 * 1024) {
+      alert('حجم الصورة يجب أن يكون أقل من 2 ميجابايت');
       return;
     }
 
@@ -68,7 +67,13 @@ export function PaymentModal({ template, userId, onClose, onSuccess }: PaymentMo
         }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data: { error?: string } = {};
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        await response.text();
+      }
 
       if (response.ok) {
         setStep(3);
@@ -76,6 +81,10 @@ export function PaymentModal({ template, userId, onClose, onSuccess }: PaymentMo
           onSuccess();
           onClose();
         }, 5000);
+      } else if (response.status === 413) {
+        setError('حجم صورة الإيصال كبير جداً. الرجاء رفع صورة أصغر.');
+      } else if (response.status === 401) {
+        setError('جلستك غير نشطة. الرجاء تسجيل الدخول مجدداً.');
       } else {
         setError(data.error || 'حدث خطأ في معالجة الدفع');
       }
@@ -250,7 +259,7 @@ export function PaymentModal({ template, userId, onClose, onSuccess }: PaymentMo
                         اضغط لرفع صورة الإيصال
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        PNG, JPG (حد أقصى 5MB)
+                        PNG, JPG (حد أقصى 2MB)
                       </p>
                     </>
                   )}

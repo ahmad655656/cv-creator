@@ -23,6 +23,11 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
+    // API routes should handle auth inside each route and return JSON, not redirects.
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.next();
+    }
+
     // التحقق إذا كان المسار عاماً
     const isPublicPath = publicPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
@@ -60,6 +65,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
   ],
 };

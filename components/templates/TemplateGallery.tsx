@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, ArrowUpRight } from 'lucide-react';
 import {
   ExecutiveProTemplate,
   TechMasterProTemplate,
@@ -26,6 +27,9 @@ interface TemplateItem {
   slug: string;
   is_premium: boolean;
 }
+
+const PREVIEW_WIDTH = 840;
+const PREVIEW_HEIGHT = 1188;
 
 const DEFAULT_PREVIEW_CONFIG: TemplateConfig = {
   primaryColor: '#2563eb',
@@ -58,12 +62,33 @@ const DEFAULT_PREVIEW_CONFIG: TemplateConfig = {
 };
 
 function TemplateCardLivePreview({ slug }: { slug: string }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.35);
+
   const normalizedSlug = slug.toLowerCase().replace(/[-_\s]/g, '');
   const professionalTemplate = getProfessionalTemplateBySlug(slug);
   const config: TemplateConfig | undefined = professionalTemplate
     ? { ...DEFAULT_PREVIEW_CONFIG, ...mapProfessionalToEditorConfig(professionalTemplate) }
     : undefined;
   const props = { data: TEMPLATE_PREVIEW_DATA, config };
+
+  useEffect(() => {
+    const element = frameRef.current;
+    if (!element) return;
+
+    const updateScale = () => {
+      const width = Math.max(element.clientWidth - 14, 0);
+      const height = Math.max(element.clientHeight - 14, 0);
+      const nextScale = Math.min(width / PREVIEW_WIDTH, height / PREVIEW_HEIGHT);
+      setScale(Number.isFinite(nextScale) ? Math.max(0.2, nextScale) : 0.35);
+    };
+
+    updateScale();
+
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   const node = (() => {
     switch (normalizedSlug) {
@@ -106,23 +131,17 @@ function TemplateCardLivePreview({ slug }: { slug: string }) {
 
   return (
     <div
+      ref={frameRef}
       dir="ltr"
-      className="absolute inset-0 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900"
+      className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_top,#f8fafc_0%,#dbeafe_45%,#cbd5e1_100%)] dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900"
     >
-      <div className="absolute inset-2 rounded-xl border border-slate-300/80 dark:border-slate-700/80 shadow-inner bg-white/70 dark:bg-slate-900/40" />
-      <div className="absolute inset-2 overflow-hidden rounded-xl">
-        <div className="absolute left-1/2 top-2 origin-top pointer-events-none" style={{ transform: 'translateX(-50%)' }}>
-          <div
-            style={{
-              width: 840,
-              minHeight: 1188,
-              transform: 'scale(0.44)',
-              transformOrigin: 'top center',
-              direction: 'ltr'
-            }}
-          >
-            {node}
-          </div>
+      <div className="absolute inset-[8px] rounded-xl border border-slate-300/80 dark:border-slate-700/80 shadow-inner bg-white/70 dark:bg-slate-900/40" />
+      <div className="absolute inset-[8px] overflow-hidden rounded-xl">
+        <div
+          className="absolute left-1/2 top-1 origin-top pointer-events-none"
+          style={{ transform: `translateX(-50%) scale(${scale})`, transformOrigin: 'top center' }}
+        >
+          <div style={{ width: PREVIEW_WIDTH, minHeight: PREVIEW_HEIGHT, direction: 'ltr' }}>{node}</div>
         </div>
       </div>
     </div>
@@ -139,11 +158,12 @@ export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
       {premiumTemplates.map((template) => (
-        <div
+        <button
+          type="button"
           key={template.id}
-          className="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition cursor-pointer group border border-gray-100 dark:border-gray-800"
+          className="text-right bg-white dark:bg-gray-900 rounded-2xl shadow-[0_15px_40px_rgba(15,23,42,0.12)] overflow-hidden hover:shadow-[0_22px_50px_rgba(15,23,42,0.18)] transition cursor-pointer group border border-slate-200 dark:border-slate-800"
           onClick={() => handleTemplateClick(template)}
         >
           <div className="aspect-[210/297] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 relative overflow-hidden">
@@ -152,11 +172,18 @@ export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
               Premium
             </span>
           </div>
-          <div className="p-4">
-            <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white">{template.name}</h3>
-            <button className="text-blue-600 hover:text-blue-700 font-medium">فتح القالب</button>
+
+          <div className="p-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">{template.name}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">معاينة متجاوبة وواضحة</p>
+            </div>
+            <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 text-sm font-semibold">
+              فتح
+              <ArrowUpRight size={16} />
+            </span>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );
