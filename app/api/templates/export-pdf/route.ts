@@ -55,6 +55,42 @@ function sanitizeFileName(raw?: string) {
   return (raw || 'template').replace(/[\\/:*?"<>|]/g, '-').trim() || 'template';
 }
 
+type ChromiumLaunchConfig = {
+  executablePath: string;
+  args: string[];
+  headless: boolean;
+};
+
+async function resolveChromiumLaunchConfig(): Promise<ChromiumLaunchConfig> {
+  const localExecutablePath = resolveChromiumExecutablePath();
+  if (localExecutablePath) {
+    return {
+      executablePath: localExecutablePath,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--font-render-hinting=none']
+    };
+  }
+
+  // Vercel/serverless fallback: packaged Chromium binary.
+  try {
+    const chromiumPackage = await import('@sparticuz/chromium');
+    const executablePath = await chromiumPackage.default.executablePath();
+    if (executablePath && existsSync(executablePath)) {
+      return {
+        executablePath,
+        headless: true,
+        args: [...chromiumPackage.default.args, '--font-render-hinting=none']
+      };
+    }
+  } catch (error) {
+    console.error('Sparticuz Chromium load error:', error);
+  }
+
+  throw new Error(
+    'No Chromium executable found. Configure CHROME_PATH or install @sparticuz/chromium for serverless runtime.'
+  );
+}
+
 export async function POST(req: Request) {
   let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
 
@@ -68,21 +104,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing template HTML' }, { status: 400 });
     }
 
-    const executablePath = resolveChromiumExecutablePath();
-    if (!executablePath) {
-      return NextResponse.json(
-        {
-          error:
-            'No Chromium/Chrome executable found on server. Set CHROME_PATH in .env.local to your browser executable path.'
-        },
-        { status: 500 }
-      );
-    }
+    const launchConfig = await resolveChromiumLaunchConfig();
 
     browser = await chromium.launch({
-      executablePath,
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--font-render-hinting=none']
+      executablePath: launchConfig.executablePath,
+      headless: launchConfig.headless,
+      args: launchConfig.args
     });
 
     const page = await browser.newPage({
@@ -168,7 +195,13 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Template PDF Export Error:', error);
-    return NextResponse.json({ error: 'Template PDF export failed' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Template PDF export failed',
+        details: error instanceof Error ? error.message : String(error)
+      },
+      { status: 500 }
+    );
   } finally {
     if (browser) {
       await browser.close();

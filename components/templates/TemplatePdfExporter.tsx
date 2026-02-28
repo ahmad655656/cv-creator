@@ -309,7 +309,8 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
 
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
-          throw new Error(data?.error || 'Server PDF export failed');
+          const details = data?.details ? ` (${data.details})` : '';
+          throw new Error(`${data?.error || 'Server PDF export failed'}${details}`);
         }
 
         return await response.blob();
