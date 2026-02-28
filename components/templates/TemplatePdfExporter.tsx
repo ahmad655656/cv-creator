@@ -236,6 +236,42 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
     URL.revokeObjectURL(url);
   };
 
+  const generateClientSidePdfBlob = async (sourceElement: HTMLElement) => {
+    const [{ default: html2canvas }, jspdfModule] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ]);
+    const JsPdf = jspdfModule.jsPDF;
+
+    const canvas = await html2canvas(sourceElement, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new JsPdf('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pageHeight;
+    }
+
+    return pdf.output('blob') as Blob;
+  };
+
   const generateTemplatePdfBlob = async (template: TemplatePdfExporterTemplate) => {
     setExportTemplate(template);
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -258,24 +294,29 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
       await waitForClientAssets(sourceElement);
       const html = buildHtmlForServerPdf(safeName, template.slug, sourceElement.innerHTML);
 
-      const response = await fetch('/api/templates/export-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templateId: template.id,
-          slug: template.slug,
-          fileName: safeName,
-          pageTier: template.pageTier,
-          html
-        })
-      });
+      try {
+        const response = await fetch('/api/templates/export-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            templateId: template.id,
+            slug: template.slug,
+            fileName: safeName,
+            pageTier: template.pageTier,
+            html
+          })
+        });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data?.error || 'Server PDF export failed');
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data?.error || 'Server PDF export failed');
+        }
+
+        return await response.blob();
+      } catch (serverError) {
+        console.warn('Server PDF export failed. Falling back to client PDF export.', serverError);
+        return await generateClientSidePdfBlob(sourceElement);
       }
-
-      return await response.blob();
     } finally {
       setExportTemplate(null);
     }
