@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,7 +19,7 @@ import {
 } from '@/components/templates/premium/PremiumTemplates';
 import { getProfessionalTemplateBySlug, mapProfessionalToEditorConfig } from '@/lib/templates/professional-templates';
 import { TEMPLATE_PREVIEW_DATA } from '@/components/templates/premium/previewData';
-import type { TemplateConfig } from '@/components/cvs/editor/types/templateConfig';
+import type { TemplateConfig } from '@/lib/types/template-config';
 
 interface TemplateItem {
   id: number;
@@ -154,7 +154,7 @@ export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
 
   const handleTemplateClick = (template: TemplateItem) => {
     if (!template.slug) return;
-    router.push(`/cvs/new/${template.slug}`);
+    router.push(`/templates?focus=${template.slug}`);
   };
 
   return (
@@ -188,3 +188,4 @@ export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
     </div>
   );
 }
+

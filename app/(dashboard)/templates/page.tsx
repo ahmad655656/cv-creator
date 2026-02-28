@@ -3,19 +3,36 @@ import { authOptions } from '@/lib/auth/auth';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import { TemplateShowcase } from '@/components/templates/TemplateShowcase';
-import type { TemplateConfig } from '@/components/cvs/editor/types/templateConfig';
+import type { TemplateConfig } from '@/lib/types/template-config';
 
 const sql = neon(process.env.DATABASE_URL!);
+const BUNDLE_TEMPLATE_LIMIT = 10;
 
 export default async function TemplatesPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
+  const userId = Number.parseInt(session.user.id, 10);
 
-  const templates = await sql`
-    SELECT * FROM templates
-    WHERE is_premium = true
-    ORDER BY price DESC, name
-  `;
+  const [templates, userPurchases, userBundle] = await Promise.all([
+    sql`
+      SELECT * FROM templates
+      WHERE is_premium = true
+      ORDER BY price DESC, name
+    `,
+    sql`
+      SELECT template_id FROM payments
+      WHERE user_id = ${userId}
+      AND status = 'approved'
+      AND template_id != 0
+    `,
+    sql`
+      SELECT id FROM payments
+      WHERE user_id = ${userId}
+      AND template_id = 0
+      AND status = 'approved'
+      LIMIT 1
+    `
+  ]);
 
   const normalizedTemplates = templates.map((template) => ({
     id: Number(template.id),
@@ -33,13 +50,22 @@ export default async function TemplatesPage() {
     downloads: Number(template.downloads ?? 0),
   }));
 
-  const userPurchases = await sql`
-    SELECT template_id FROM payments
-    WHERE user_id = ${Number.parseInt(session.user.id, 10)}
-    AND status = 'approved'
-  `;
-
   const purchasedTemplateIds = new Set(userPurchases.map((p) => p.template_id));
+  const hasBundle = userBundle.length > 0;
+
+  if (hasBundle) {
+    const bundleTemplates = await sql`
+      SELECT id
+      FROM templates
+      WHERE is_premium = true
+      ORDER BY price DESC, name
+      LIMIT ${BUNDLE_TEMPLATE_LIMIT}
+    `;
+
+    for (const template of bundleTemplates) {
+      purchasedTemplateIds.add(Number(template.id));
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(800px_400px_at_90%_-20%,#dbeafe_0%,transparent_60%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_55%,#ffffff_100%)] dark:bg-[radial-gradient(800px_400px_at_90%_-20%,#1e3a8a_0%,transparent_60%),linear-gradient(180deg,#0b1220_0%,#0f172a_55%,#020617_100%)]">
@@ -60,10 +86,11 @@ export default async function TemplatesPage() {
           <TemplateShowcase
             templates={normalizedTemplates}
             purchasedTemplates={purchasedTemplateIds}
-            userId={Number.parseInt(session.user.id, 10)}
+            userId={userId}
           />
         </div>
       </div>
     </div>
   );
 }
+

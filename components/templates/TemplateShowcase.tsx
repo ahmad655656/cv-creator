@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -9,7 +9,7 @@ import {
   TemplatePdfExporter,
   type TemplatePdfExporterHandle
 } from '@/components/templates/TemplatePdfExporter';
-import type { TemplateConfig } from '@/components/cvs/editor/types/templateConfig';
+import type { TemplateConfig } from '@/lib/types/template-config';
 
 interface Template {
   id: number;
@@ -379,3 +379,4 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
     </>
   );
 }
+

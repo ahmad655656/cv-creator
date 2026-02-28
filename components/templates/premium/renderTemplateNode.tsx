@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import {
@@ -17,7 +17,7 @@ import {
 } from '@/components/templates/premium/PremiumTemplates';
 import { getProfessionalTemplateBySlug, mapProfessionalToEditorConfig } from '@/lib/templates/professional-templates';
 import { TEMPLATE_PREVIEW_DATA } from '@/components/templates/premium/previewData';
-import type { TemplateConfig } from '@/components/cvs/editor/types/templateConfig';
+import type { TemplateConfig } from '@/lib/types/template-config';
 
 interface RenderTemplateNodeOptions {
   slug: string;
@@ -102,3 +102,4 @@ export function renderPremiumTemplateNode(options: RenderTemplateNodeOptions): R
       return null;
   }
 }
+

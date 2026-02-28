@@ -3,39 +3,29 @@ import { authOptions } from '@/lib/auth/auth';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import Link from 'next/link';
-import { 
-  Plus, FileText, Eye, Download, MoreVertical, Calendar, Edit, Trash2,
-  Users, CreditCard, LayoutTemplate, BarChart3, Settings, Shield, Bell,
-  Crown, Package
-} from 'lucide-react';
-import { DashboardStats } from '@/components/dashboard/DashboardStats';
-import { CVCard } from '@/components/dashboard/CVCard';
+import type { ReactNode } from 'react';
+import { CreditCard, Download, Eye, FileText, LayoutTemplate, Package, TrendingUp } from 'lucide-react';
 import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
 
 const sql = neon(process.env.DATABASE_URL!);
+const BUNDLE_TEMPLATE_LIMIT = 10;
+
+type UserCV = {
+  id: number;
+  title: string;
+  updated_at: string;
+  views: number;
+  downloads: number;
+};
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
+  if (!session) redirect('/login');
 
-  if (!session) {
-    redirect('/login');
-  }
-
-  // ✅ للتشخيص - شوف البيانات في الـ console
-  console.log('👤 Session user:', session.user);
-  console.log('👤 User role:', session.user?.role);
-
-  // التحقق من دور المستخدم
   const userRole = session.user?.role || 'user';
   const isAdmin = userRole === 'admin';
 
-  console.log('👑 Is admin?', isAdmin);
-
-  // ✅ إذا كان المستخدم أدمن، اعرض AdminDashboard فقط
   if (isAdmin) {
-    console.log('👑 Admin logged in - showing AdminDashboard');
-    
-    // إحصائيات عامة للأدمن
     const [
       totalUsers,
       totalTemplates,
@@ -72,327 +62,187 @@ export default async function DashboardPage() {
     ]);
 
     const adminStats = {
-      totalUsers: totalUsers[0]?.count || 0,
-      totalTemplates: totalTemplates[0]?.count || 0,
-      totalPayments: totalPayments[0]?.count || 0,
-      totalRevenue: totalPayments[0]?.total || 0,
-      pendingPayments: pendingPayments[0]?.count || 0,
-      totalCVs: totalCVs[0]?.count || 0,
+      totalUsers: Number(totalUsers[0]?.count || 0),
+      totalTemplates: Number(totalTemplates[0]?.count || 0),
+      totalPayments: Number(totalPayments[0]?.count || 0),
+      totalRevenue: Number(totalPayments[0]?.total || 0),
+      pendingPayments: Number(pendingPayments[0]?.count || 0),
+      totalCVs: Number(totalCVs[0]?.count || 0),
       recentPayments: recentPayments || [],
       popularTemplates: popularTemplates || [],
-      bundlePayments: bundlePayments[0]?.count || 0
+      bundlePayments: Number(bundlePayments[0]?.count || 0)
     };
 
-    // ✅ عرض AdminDashboard فقط
-    return (
-      <AdminDashboard 
-        stats={adminStats}
-        user={session.user}
-      />
-    );
+    return <AdminDashboard stats={adminStats} user={session.user} />;
   }
 
-  // ✅ إذا كان المستخدم عادي، اعرض UserDashboard
-  console.log('👤 User logged in - showing UserDashboard');
-  
-  // باقي كود المستخدم العادي...
-  // جلب السير الذاتية للمستخدم
-  const cvsRaw = await sql`
-    SELECT
-      c.id,
-      c.title,
-      COALESCE(t.name, 'Template') as template_name,
-      t.thumbnail as template_thumbnail,
-      c.is_public as is_published,
-      c.views,
-      c.downloads,
-      c.share_id,
-      c.updated_at,
-      c.created_at
-    FROM cvs c
-    LEFT JOIN templates t ON c.template_id = t.slug
-    WHERE c.user_id = ${Number.parseInt(session.user.id, 10)}
-    ORDER BY c.updated_at DESC
-  `;
-  const cvs = cvsRaw.map((cv) => ({
-    id: Number(cv.id),
-    title: String(cv.title ?? ''),
-    template_name: String(cv.template_name ?? 'Template'),
-    template_thumbnail: cv.template_thumbnail ? String(cv.template_thumbnail) : null,
-    is_published: Boolean(cv.is_published),
-    views: Number(cv.views ?? 0),
-    downloads: Number(cv.downloads ?? 0),
-    share_id: String(cv.share_id ?? ''),
-    updated_at: new Date(cv.updated_at as string | Date).toISOString(),
-    created_at: new Date(cv.created_at as string | Date).toISOString(),
-  }));
+  const userId = Number.parseInt(session.user.id, 10);
 
-  // التحقق من وجود باقة شاملة للمستخدم
-  const userBundle = await sql`
-    SELECT * FROM payments 
-    WHERE user_id = ${Number.parseInt(session.user.id, 10)} 
-    AND template_id = 0 
-    AND status = 'approved'
-    LIMIT 1
-  `;
+  const [cvsRaw, userBundle, purchasedTemplates] = await Promise.all([
+    sql`
+      SELECT id, title, updated_at, views, downloads
+      FROM cvs
+      WHERE user_id = ${userId}
+      ORDER BY updated_at DESC
+      LIMIT 8
+    `,
+    sql`
+      SELECT id FROM payments
+      WHERE user_id = ${userId}
+      AND template_id = 0
+      AND status = 'approved'
+      LIMIT 1
+    `,
+    sql`
+      SELECT DISTINCT ON (t.id) t.id, t.name, t.slug, t.category, t.price
+      FROM templates t
+      JOIN payments p ON t.id = p.template_id
+      WHERE p.user_id = ${userId}
+      AND p.status = 'approved'
+      AND p.template_id != 0
+      AND t.is_premium = true
+      ORDER BY t.id, t.name
+    `
+  ]);
 
   const hasBundle = userBundle.length > 0;
 
-  // جلب القوالب المشتراة
-  const purchasedTemplates = await sql`
-    SELECT t.* 
-    FROM templates t
-    JOIN payments p ON t.id = p.template_id
-    WHERE p.user_id = ${Number.parseInt(session.user.id, 10)} 
-    AND p.status = 'approved'
-    AND p.template_id != 0
-    AND t.is_premium = true
-  `;
+  const availableTemplates = hasBundle
+    ? await sql`
+        SELECT id, name, slug, category, price
+        FROM templates
+        WHERE is_premium = true
+        ORDER BY price DESC, name
+        LIMIT ${BUNDLE_TEMPLATE_LIMIT}
+      `
+    : purchasedTemplates;
 
-  // جلب جميع القوالب للباقة
-  let allTemplates: any[] = [];
-  if (hasBundle) {
-    allTemplates = await sql`
-      SELECT * FROM templates 
-      WHERE is_premium = true
-      ORDER BY name
-    `;
-  }
+  const cvs: UserCV[] = cvsRaw.map((cv) => ({
+    id: Number(cv.id),
+    title: String(cv.title ?? 'CV'),
+    updated_at: new Date(cv.updated_at as string | Date).toISOString(),
+    views: Number(cv.views ?? 0),
+    downloads: Number(cv.downloads ?? 0)
+  }));
 
-  // إحصائيات المستخدم
   const stats = {
     total: cvs.length,
-    published: cvs.filter(cv => cv.is_published).length,
-    views: cvs.reduce((acc, cv) => acc + (cv.views || 0), 0),
-    downloads: cvs.reduce((acc, cv) => acc + (cv.downloads || 0), 0),
-    purchasedTemplates: hasBundle ? allTemplates.length : purchasedTemplates.length,
-    totalSpent: hasBundle ? 70000 : purchasedTemplates.reduce((acc, t) => acc + (t.price || 0), 0),
-    hasBundle
+    views: cvs.reduce((acc, cv) => acc + cv.views, 0),
+    downloads: cvs.reduce((acc, cv) => acc + cv.downloads, 0),
+    templates: availableTemplates.length
   };
 
-  // القوالب المعروضة
-  const displayTemplates = hasBundle ? allTemplates : purchasedTemplates;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-900 border-b dark:border-gray-800 shadow-sm">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                {session.user.name?.charAt(0) || 'U'}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  مرحباً {session.user.name}!
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  {new Date().toLocaleDateString('ar-EG', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
-                {hasBundle && (
-                  <div className="mt-2 inline-flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-sm">
-                    <Package size={16} />
-                    <span>مشترك في الباقة الشاملة</span>
-                    <Crown size={16} className="text-yellow-500" />
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <Link
-                href="/templates"
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
-              >
-                <LayoutTemplate size={20} />
-                استعرض القوالب
-              </Link>
-              <Link
-                href="/cvs/new"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-              >
-                <Plus size={20} />
-                إنشاء سيرة ذاتية جديدة
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* باقي محتوى UserDashboard */}
-      <div className="container mx-auto px-4 py-8">
-        {/* إحصائيات المستخدم */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">السير الذاتية</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.total}</p>
-              </div>
-              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
-                <FileText size={24} className="text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">منشورة</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.published}</p>
-              </div>
-              <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg">
-                <Eye size={24} className="text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">المشاهدات</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.views}</p>
-              </div>
-              <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg">
-                <Eye size={24} className="text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">التحميلات</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.downloads}</p>
-              </div>
-              <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-lg">
-                <Download size={24} className="text-orange-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">القوالب المتاحة</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.purchasedTemplates}</p>
-              </div>
-              <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg">
-                <CreditCard size={24} className="text-yellow-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* القوالب المتاحة */}
-        {displayTemplates.length > 0 && (
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {hasBundle ? 'جميع القوالب (باقة شاملة)' : 'القوالب المشتراة'}
-              </h2>
-              {hasBundle && (
-                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-sm flex items-center gap-1">
+    <div className="min-h-screen bg-[radial-gradient(900px_360px_at_90%_-10%,#dbeafe_0%,transparent_55%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_50%,#ffffff_100%)] dark:bg-[radial-gradient(900px_360px_at_90%_-10%,#1e3a8a_0%,transparent_55%),linear-gradient(180deg,#0b1220_0%,#0f172a_50%,#020617_100%)]">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        <section className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/80 backdrop-blur-sm shadow-sm p-5 sm:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100">لوحة التحكم</h1>
+              <p className="mt-2 text-slate-600 dark:text-slate-300">أهلاً {session.user.name}، كل شيء جاهز لإدارة القوالب والمدفوعات.</p>
+              {hasBundle ? (
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 text-sm">
                   <Package size={16} />
-                  10 قوالب متاحة
-                </span>
-              )}
+                  مشترك في الباقة الشاملة
+                </div>
+              ) : null}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {displayTemplates.map((template) => (
-                <Link
-                  key={template.id}
-                  href={`/cvs/new/${template.slug}`}
-                  className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-4 hover:shadow-lg transition text-center group relative"
-                >
-                  {hasBundle && (
-                    <div className="absolute top-2 right-2">
-                      <Crown size={14} className="text-yellow-500" />
-                    </div>
-                  )}
-                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-3 group-hover:scale-110 transition">
-                    {template.name.charAt(0)}
-                  </div>
-                  <h3 className="font-medium text-gray-900 dark:text-white text-sm mb-1 line-clamp-1">
-                    {template.name}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {template.category}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* السير الذاتية */}
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">السير الذاتية</h2>
-            <Link href="/cvs" className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
-              عرض الكل
-              <span className="text-lg">←</span>
-            </Link>
-          </div>
-
-          {cvs.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-12 text-center">
-              <FileText size={64} className="mx-auto text-gray-300 dark:text-gray-700 mb-4" />
-              <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-                لا توجد سير ذاتية بعد
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                ابدأ مسيرتك المهنية بإنشاء سيرتك الذاتية الأولى باستخدام قوالبنا الاحترافية
-              </p>
-              <Link
-                href="/cvs/new"
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 transition shadow-lg hover:shadow-xl"
-              >
-                <Plus size={20} />
-                إنشاء سيرة ذاتية
+            <div className="flex flex-wrap gap-2">
+              <Link href="/templates" className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition">
+                <LayoutTemplate size={18} />
+                استعراض القوالب
+              </Link>
+              <Link href="/my-cvs" className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                <FileText size={18} />
+                سيري الذاتية
               </Link>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {cvs.map((cv) => (
-                <CVCard key={cv.id} cv={cv} />
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        </section>
 
-        {/* نصائح مخصصة */}
-        <div className="mt-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
-                💡
-              </div>
-              <div>
-                <h3 className="text-xl font-bold mb-2">نصيحة ذهبية</h3>
-                <p className="text-white/90 max-w-xl">
-                  {stats.total === 0 
-                    ? 'ابدأ بإنشاء سيرتك الذاتية الأولى الآن! استخدم أحد قوالبنا الاحترافية.'
-                    : stats.published === 0
-                    ? 'قم بنشر سيرتك الذاتية للحصول على رابط مشاركة فريد وإرساله لأصحاب العمل.'
-                    : 'شارك سيرتك الذاتية على LinkedIn ووسائل التواصل الاجتماعي لزيادة فرصك.'
-                  }
-                </p>
-              </div>
+        <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard title="السير الذاتية" value={stats.total} icon={<FileText size={20} />} />
+          <StatCard title="المشاهدات" value={stats.views} icon={<Eye size={20} />} />
+          <StatCard title="التحميلات" value={stats.downloads} icon={<Download size={20} />} />
+          <StatCard title="القوالب المتاحة" value={stats.templates} icon={<CreditCard size={20} />} />
+        </section>
+
+        <section className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">قوالبك المتاحة</h2>
+              <Link href="/templates" className="text-sm text-blue-600 hover:text-blue-700">عرض الكل</Link>
             </div>
-            <Link
-              href={stats.total === 0 ? "/cvs/new" : "/templates"}
-              className="bg-white text-blue-600 px-6 py-3 rounded-xl hover:bg-gray-100 transition font-medium whitespace-nowrap shadow-lg"
-            >
-              {stats.total === 0 ? 'ابدأ الآن' : 'استعرض القوالب'}
+            {availableTemplates.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">لا توجد قوالب متاحة حالياً. يمكنك الشراء من صفحة القوالب.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {availableTemplates.slice(0, 6).map((template) => (
+                  <Link
+                    key={`${template.id}-${String(template.slug)}`}
+                    href={`/templates?focus=${template.slug}`}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 hover:border-blue-400 transition"
+                  >
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1">{String(template.name)}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{String(template.category ?? 'General')}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">آخر السير الذاتية</h2>
+              <Link href="/my-cvs" className="text-sm text-blue-600 hover:text-blue-700">إدارة الكل</Link>
+            </div>
+            {cvs.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">لا توجد سير محفوظة حالياً.</p>
+            ) : (
+              <div className="space-y-3">
+                {cvs.map((cv) => (
+                  <div key={cv.id} className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1">{cv.title}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="inline-flex items-center gap-1"><Eye size={13} /> {cv.views}</span>
+                      <span className="inline-flex items-center gap-1"><Download size={13} /> {cv.downloads}</span>
+                      <span>{new Date(cv.updated_at).toLocaleDateString('ar-EG')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 sm:p-6 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-bold">خطوتك التالية</h3>
+              <p className="text-blue-100 mt-1">اختر قالباً مناسباً ثم أكمل الشراء أو تحميل النسخة المتاحة لديك.</p>
+            </div>
+            <Link href="/templates" className="inline-flex items-center gap-2 bg-white text-blue-700 px-4 py-2.5 rounded-xl font-semibold hover:bg-slate-100 transition">
+              <TrendingUp size={18} />
+              الذهاب للقوالب
             </Link>
           </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon }: { title: string; value: number; icon: ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
+          <p className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-slate-100">{value}</p>
+        </div>
+        <div className="w-11 h-11 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 flex items-center justify-center">
+          {icon}
         </div>
       </div>
     </div>

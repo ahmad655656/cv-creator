@@ -1,4 +1,4 @@
-export interface TemplateConfig {
+﻿export interface TemplateConfig {
   primaryColor: string;
   secondaryColor: string;
   headingColor: string;

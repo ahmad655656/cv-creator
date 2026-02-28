@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { renderPremiumTemplateNode } from '@/components/templates/premium/renderTemplateNode';
-import type { TemplateConfig } from '@/components/cvs/editor/types/templateConfig';
+import type { TemplateConfig } from '@/lib/types/template-config';
 
 export interface TemplatePdfExporterTemplate {
   id: number;
@@ -314,3 +314,4 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
     </div>
   );
 });
+

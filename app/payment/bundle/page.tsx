@@ -79,7 +79,7 @@ export default function BundlePaymentPage() {
           router.push('/dashboard?payment=success');
         }, 5000);
       } else {
-        setError(data.error || 'حدث خطأ في معالجة الدفع');
+        setError(data.details ? `${data.error}: ${data.details}` : (data.error || 'حدث خطأ في معالجة الدفع'));
       }
     } catch (error) {
       setError('حدث خطأ في الاتصال بالخادم');

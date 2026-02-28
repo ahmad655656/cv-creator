@@ -1,4 +1,4 @@
-import type { TemplateConfig as EditorTemplateConfig } from '@/components/cvs/editor/types/templateConfig';
+﻿import type { TemplateConfig as EditorTemplateConfig } from '@/lib/types/template-config';
 
 export interface ProfessionalTemplateConfig {
   id: string;
@@ -35,9 +35,9 @@ export interface ProfessionalTemplateConfig {
   }>;
 }
 
-// قوالب احترافية معتمدة عالمياً - جميعها بسعر 10,000 ل.س
+// ظ‚ظˆط§ظ„ط¨ ط§ط­طھط±ط§ظپظٹط© ظ…ط¹طھظ…ط¯ط© ط¹ط§ظ„ظ…ظٹط§ظ‹ - ط¬ظ…ظٹط¹ظ‡ط§ ط¨ط³ط¹ط± 10,000 ظ„.ط³
 export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> = {
-  // قالب تنفيذي - للمناصب القيادية
+  // ظ‚ط§ظ„ط¨ طھظ†ظپظٹط°ظٹ - ظ„ظ„ظ…ظ†ط§طµط¨ ط§ظ„ظ‚ظٹط§ط¯ظٹط©
   executive: {
     id: 'executive',
     name: 'Executive Pro',
@@ -67,7 +67,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب تقني - للمبرمجين والمهندسين
+  // ظ‚ط§ظ„ط¨ طھظ‚ظ†ظٹ - ظ„ظ„ظ…ط¨ط±ظ…ط¬ظٹظ† ظˆط§ظ„ظ…ظ‡ظ†ط¯ط³ظٹظ†
   techMaster: {
     id: 'techMaster',
     name: 'TechMaster',
@@ -98,7 +98,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب أكاديمي - للباحثين والأكاديميين
+  // ظ‚ط§ظ„ط¨ ط£ظƒط§ط¯ظٹظ…ظٹ - ظ„ظ„ط¨ط§ط­ط«ظٹظ† ظˆط§ظ„ط£ظƒط§ط¯ظٹظ…ظٹظٹظ†
   academicElite: {
     id: 'academicElite',
     name: 'Academic Elite',
@@ -129,7 +129,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب طبي - للأطباء والممرضين
+  // ظ‚ط§ظ„ط¨ ط·ط¨ظٹ - ظ„ظ„ط£ط·ط¨ط§ط، ظˆط§ظ„ظ…ظ…ط±ط¶ظٹظ†
   medicalPro: {
     id: 'medicalPro',
     name: 'Medical Pro',
@@ -159,7 +159,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب مالي - للمحاسبين والمستثمرين
+  // ظ‚ط§ظ„ط¨ ظ…ط§ظ„ظٹ - ظ„ظ„ظ…ط­ط§ط³ط¨ظٹظ† ظˆط§ظ„ظ…ط³طھط«ظ…ط±ظٹظ†
   financeElite: {
     id: 'financeElite',
     name: 'Finance Elite',
@@ -189,7 +189,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب قانوني - للمحامين
+  // ظ‚ط§ظ„ط¨ ظ‚ط§ظ†ظˆظ†ظٹ - ظ„ظ„ظ…ط­ط§ظ…ظٹظ†
   legalExpert: {
     id: 'legalExpert',
     name: 'Legal Expert',
@@ -219,7 +219,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب تسويقي - للمسوقين
+  // ظ‚ط§ظ„ط¨ طھط³ظˆظٹظ‚ظٹ - ظ„ظ„ظ…ط³ظˆظ‚ظٹظ†
   marketingGuru: {
     id: 'marketingGuru',
     name: 'Marketing Guru',
@@ -249,7 +249,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب معماري - للمهندسين المعماريين
+  // ظ‚ط§ظ„ط¨ ظ…ط¹ظ…ط§ط±ظٹ - ظ„ظ„ظ…ظ‡ظ†ط¯ط³ظٹظ† ط§ظ„ظ…ط¹ظ…ط§ط±ظٹظٹظ†
   architectPro: {
     id: 'architectPro',
     name: 'Architect Pro',
@@ -279,7 +279,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب موارد بشرية
+  // ظ‚ط§ظ„ط¨ ظ…ظˆط§ط±ط¯ ط¨ط´ط±ظٹط©
   hrPro: {
     id: 'hrPro',
     name: 'HR Pro',
@@ -309,7 +309,7 @@ export const PROFESSIONAL_TEMPLATES: Record<string, ProfessionalTemplateConfig> 
     ],
   },
 
-  // قالب المبيعات
+  // ظ‚ط§ظ„ط¨ ط§ظ„ظ…ط¨ظٹط¹ط§طھ
   globalEdge: {
     id: 'globalEdge',
     name: 'Global Edge',
@@ -656,3 +656,4 @@ export function mapProfessionalToEditorConfig(template: ProfessionalTemplateConf
     ...perTemplate[template.id]
   };
 }
+

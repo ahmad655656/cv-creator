@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import { createContext, useContext } from 'react';
 import { CVData } from '@/components/cvs/types';
-import { TemplateConfig } from '@/components/cvs/editor/types/templateConfig';
+import { TemplateConfig } from '@/lib/types/template-config';
 
 interface PremiumTemplateProps {
   data: CVData;
@@ -1074,3 +1074,4 @@ export function AuroraPrimeTemplate({ data, config, styleOverrides, sectionVisib
     </SectionStylesContext.Provider>
   );
 }
+

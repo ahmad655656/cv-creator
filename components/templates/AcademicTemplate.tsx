@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import { CVData } from '../cvs/types';
-import { TemplateConfig } from '../cvs/editor/types/templateConfig';
+import type { TemplateConfig } from '@/lib/types/template-config';
 
 interface TemplateProps {
   data: CVData;
@@ -121,3 +121,4 @@ export function AcademicTemplate({ data, config }: TemplateProps) {
     </div>
   );
 }
+

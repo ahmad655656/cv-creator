@@ -303,7 +303,9 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute left-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-800 z-50 overflow-hidden">
+        <>
+          <div className="fixed inset-0 z-40 bg-black/20 md:hidden" onClick={() => setOpen(false)} />
+          <div className="fixed top-16 inset-x-2 z-50 max-h-[78vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-800 overflow-hidden md:absolute md:top-auto md:inset-x-auto md:right-0 md:left-auto md:mt-2 md:w-96 md:max-w-[90vw] md:max-h-[70vh]">
           <div className="px-4 py-3 border-b dark:border-gray-800 flex items-center justify-between">
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">Notifications</p>
@@ -348,7 +350,7 @@ export function NotificationBell() {
             {pushHint ? <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">{pushHint}</p> : null}
           </div>
 
-          <div className="max-h-96 overflow-auto">
+          <div className="h-[calc(78vh-108px)] md:h-auto md:max-h-96 overflow-auto">
             {loading && notifications.length === 0 ? (
               <div className="p-6 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 justify-center">
                 <Loader2 size={16} className="animate-spin" />
@@ -364,8 +366,8 @@ export function NotificationBell() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.title}</p>
-                      <p className="text-xs mt-1 text-gray-600 dark:text-gray-300">{item.message}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white break-words">{item.title}</p>
+                      <p className="text-sm mt-1 text-gray-600 dark:text-gray-300 break-words leading-relaxed">{item.message}</p>
                       {item.link ? (
                         <Link
                           href={item.link}
@@ -393,6 +395,7 @@ export function NotificationBell() {
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

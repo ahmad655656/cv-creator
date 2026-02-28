@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import { CVData } from '../cvs/types';
-import { TemplateConfig } from '../cvs/editor/types/templateConfig';
+import type { TemplateConfig } from '@/lib/types/template-config';
 
 interface TemplateProps {
   data: CVData;
@@ -108,7 +108,7 @@ export function ExecutiveTemplate({ data, config }: TemplateProps) {
                     {exp.description.length > 0 && (
                       <ul className="mt-2 space-y-1" style={{ fontSize: `${config?.bodySize || 14}px` }}>
                         {exp.description.filter(Boolean).map((desc, j) => (
-                          <li key={j}>• {desc}</li>
+                          <li key={j}>â€¢ {desc}</li>
                         ))}
                       </ul>
                     )}
@@ -122,3 +122,4 @@ export function ExecutiveTemplate({ data, config }: TemplateProps) {
     </div>
   );
 }
+
