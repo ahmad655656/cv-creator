@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +16,8 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+      const callbackUrl =
+        new URLSearchParams(window.location.search).get('callbackUrl') || '/dashboard';
       const result = await signIn('credentials', {
         email,
         password,
