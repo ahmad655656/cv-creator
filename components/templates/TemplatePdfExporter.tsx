@@ -233,7 +233,8 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    // Defer revocation to avoid rare browser timing issues on hosted environments.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
   const generateClientSidePdfBlob = async (sourceElement: HTMLElement) => {
@@ -292,32 +293,34 @@ export const TemplatePdfExporter = forwardRef<TemplatePdfExporterHandle, object>
 
     try {
       await waitForClientAssets(sourceElement);
-      const html = buildHtmlForServerPdf(safeName, template.slug, sourceElement.innerHTML);
 
+      // Keep one export path across localhost and Vercel.
       try {
-        const response = await fetch('/api/templates/export-pdf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            templateId: template.id,
-            slug: template.slug,
-            fileName: safeName,
-            pageTier: template.pageTier,
-            html
-          })
-        });
-
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          const details = data?.details ? ` (${data.details})` : '';
-          throw new Error(`${data?.error || 'Server PDF export failed'}${details}`);
-        }
-
-        return await response.blob();
-      } catch (serverError) {
-        console.warn('Server PDF export failed. Falling back to client PDF export.', serverError);
         return await generateClientSidePdfBlob(sourceElement);
+      } catch (clientError) {
+        console.warn('Client PDF export failed. Falling back to server PDF export.', clientError);
       }
+
+      const html = buildHtmlForServerPdf(safeName, template.slug, sourceElement.innerHTML);
+      const response = await fetch('/api/templates/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: template.id,
+          slug: template.slug,
+          fileName: safeName,
+          pageTier: template.pageTier,
+          html
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const details = data?.details ? ` (${data.details})` : '';
+        throw new Error(`${data?.error || 'Server PDF export failed'}${details}`);
+      }
+
+      return await response.blob();
     } finally {
       setExportTemplate(null);
     }
