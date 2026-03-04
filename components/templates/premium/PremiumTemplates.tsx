@@ -2336,7 +2336,7 @@ export function MinimalNordicTemplate({ data, config, styleOverrides, sectionVis
     <SectionStylesContext.Provider value={sectionStyles || {}}>
       <SectionOrderContext.Provider value={sectionOrder || []}>
         <div
-          className="w-full h-full bg-[#e8edf4] p-[12px] box-border text-[#2f3440]"
+          className="w-full h-full box-border text-[#2f3440]"
           style={{
             aspectRatio: '210 / 297',
             fontFamily: '"Poppins", "Montserrat", "Segoe UI", Arial, sans-serif'
@@ -2344,7 +2344,7 @@ export function MinimalNordicTemplate({ data, config, styleOverrides, sectionVis
           dir="ltr"
         >
           <div
-            className="grid h-full w-full rounded-[14px] overflow-hidden border border-[#c6cedb] bg-[#f4f4f5]"
+            className="grid h-full w-full overflow-hidden bg-[#f4f4f5]"
             style={{ gridTemplateColumns: '33% 67%' }}
           >
             <aside className="bg-[#344159] text-[#f6f8fc] px-5 py-6 text-left">

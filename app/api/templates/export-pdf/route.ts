@@ -62,6 +62,19 @@ type ChromiumLaunchConfig = {
   headless: boolean;
 };
 
+function isZeroMarginTemplate(slug: string) {
+  const normalized = (slug || '').toLowerCase().replace(/[-_\s]/g, '');
+  return (
+    normalized === 'minimalnordic' ||
+    normalized === 'salesstar' ||
+    normalized === 'richard' ||
+    normalized === 'andreemas' ||
+    normalized === 'productlead' ||
+    normalized === 'julianasilva' ||
+    normalized === 'alidaplanet'
+  );
+}
+
 async function resolveChromiumLaunchConfig(): Promise<ChromiumLaunchConfig> {
   const localExecutablePath = resolveChromiumExecutablePath();
   if (localExecutablePath) {
@@ -140,13 +153,7 @@ export async function POST(req: Request) {
     // Avoid transform-based auto-scaling because it breaks document flow and can
     // push page-2 content into the middle of the page in some templates.
     void pageTier;
-    const normalizedSlug = slug.replace(/[-_\s]/g, '');
-    const useZeroMargins =
-      normalizedSlug === 'minimalnordic' ||
-      normalizedSlug === 'salesstar' ||
-      normalizedSlug === 'productlead' ||
-      normalizedSlug === 'julianasilva' ||
-      normalizedSlug === 'alidaplanet';
+    const useZeroMargins = pageTier === 'one-page' || isZeroMarginTemplate(slug);
 
     const pdfBuffer = await page.pdf({
       format: pageFormat.toLowerCase() as 'a4' | 'letter',
