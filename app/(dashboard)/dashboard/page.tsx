@@ -4,19 +4,13 @@ import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { CreditCard, Download, Eye, FileText, LayoutTemplate, Package, TrendingUp } from 'lucide-react';
+import { CreditCard, LayoutTemplate, Package, ShoppingCart, TrendingUp } from 'lucide-react';
 import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
+import { isAllowedPremiumSlug } from '@/lib/templates/allowedPremiumSlugs';
 
 const sql = neon(process.env.DATABASE_URL!);
-const BUNDLE_TEMPLATE_LIMIT = 10;
-
-type UserCV = {
-  id: number;
-  title: string;
-  updated_at: string;
-  views: number;
-  downloads: number;
-};
+const BUNDLE_TEMPLATE_LIMIT = 7;
+const ALLOWED_SLUGS_SQL = ['richard', 'salesstar', 'alidaplanet', 'andreemas', 'julianasilva', 'minimalnordic', 'productlead'];
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -26,6 +20,8 @@ export default async function DashboardPage() {
   const isAdmin = userRole === 'admin';
 
   if (isAdmin) {
+    const templateScopeCondition = sql`regexp_replace(lower(t.slug), '[-_\\s]', '', 'g') = ANY(${ALLOWED_SLUGS_SQL})`;
+
     const [
       totalUsers,
       totalTemplates,
@@ -37,16 +33,43 @@ export default async function DashboardPage() {
       bundlePayments
     ] = await Promise.all([
       sql`SELECT COUNT(*) as count FROM users`,
-      sql`SELECT COUNT(*) as count FROM templates`,
-      sql`SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'approved'`,
-      sql`SELECT COUNT(*) as count FROM payments WHERE status = 'pending'`,
-      sql`SELECT COUNT(*) as count FROM cvs`,
+      sql`
+        SELECT COUNT(*) as count
+        FROM templates t
+        WHERE ${templateScopeCondition}
+      `,
+      sql`
+        SELECT COUNT(*) as count, COALESCE(SUM(p.amount), 0) as total
+        FROM payments p
+        LEFT JOIN templates t ON p.template_id = t.id
+        WHERE p.status = 'approved'
+        AND (
+          p.template_id = 0
+          OR ${templateScopeCondition}
+        )
+      `,
+      sql`
+        SELECT COUNT(*) as count
+        FROM payments p
+        LEFT JOIN templates t ON p.template_id = t.id
+        WHERE p.status = 'pending'
+        AND (
+          p.template_id = 0
+          OR ${templateScopeCondition}
+        )
+      `,
+      sql`
+        SELECT COUNT(*) as count
+        FROM cvs c
+        WHERE regexp_replace(lower(c.template_id), '[-_\\s]', '', 'g') = ANY(${ALLOWED_SLUGS_SQL})
+      `,
       sql`
         SELECT p.*, u.name as user_name, u.email, t.name as template_name,
                CASE WHEN p.template_id = 0 THEN 'bundle' ELSE 'single' END as payment_type
         FROM payments p
         JOIN users u ON p.user_id = u.id
         LEFT JOIN templates t ON p.template_id = t.id
+        WHERE p.template_id = 0 OR ${templateScopeCondition}
         ORDER BY p.created_at DESC
         LIMIT 5
       `,
@@ -54,11 +77,17 @@ export default async function DashboardPage() {
         SELECT t.name, COUNT(c.id) as usage_count
         FROM templates t
         LEFT JOIN cvs c ON t.slug = c.template_id
+        WHERE ${templateScopeCondition}
         GROUP BY t.id, t.name
         ORDER BY usage_count DESC
         LIMIT 5
       `,
-      sql`SELECT COUNT(*) as count FROM payments WHERE template_id = 0 AND status = 'approved'`
+      sql`
+        SELECT COUNT(*) as count
+        FROM payments
+        WHERE template_id = 0
+        AND status = 'approved'
+      `
     ]);
 
     const adminStats = {
@@ -78,16 +107,10 @@ export default async function DashboardPage() {
 
   const userId = Number.parseInt(session.user.id, 10);
 
-  const [cvsRaw, userBundle, purchasedTemplates] = await Promise.all([
+  const [userBundle, purchasedTemplates, approvedPaymentsCount] = await Promise.all([
     sql`
-      SELECT id, title, updated_at, views, downloads
-      FROM cvs
-      WHERE user_id = ${userId}
-      ORDER BY updated_at DESC
-      LIMIT 8
-    `,
-    sql`
-      SELECT id FROM payments
+      SELECT id
+      FROM payments
       WHERE user_id = ${userId}
       AND template_id = 0
       AND status = 'approved'
@@ -101,7 +124,15 @@ export default async function DashboardPage() {
       AND p.status = 'approved'
       AND p.template_id != 0
       AND t.is_premium = true
+      AND regexp_replace(lower(t.slug), '[-_\\s]', '', 'g') = ANY(${ALLOWED_SLUGS_SQL})
       ORDER BY t.id, t.name
+    `,
+    sql`
+      SELECT COUNT(*)::int AS count
+      FROM payments
+      WHERE user_id = ${userId}
+      AND status = 'approved'
+      AND template_id != 0
     `
   ]);
 
@@ -109,27 +140,24 @@ export default async function DashboardPage() {
 
   const availableTemplates = hasBundle
     ? await sql`
-        SELECT id, name, slug, category, price
-        FROM templates
-        WHERE is_premium = true
-        ORDER BY price DESC, name
-        LIMIT ${BUNDLE_TEMPLATE_LIMIT}
-      `
+      SELECT id, name, slug, category, price
+      FROM templates
+      WHERE is_premium = true
+      AND regexp_replace(lower(slug), '[-_\\s]', '', 'g') = ANY(${ALLOWED_SLUGS_SQL})
+      ORDER BY price DESC, name
+      LIMIT ${BUNDLE_TEMPLATE_LIMIT}
+    `
     : purchasedTemplates;
 
-  const cvs: UserCV[] = cvsRaw.map((cv) => ({
-    id: Number(cv.id),
-    title: String(cv.title ?? 'CV'),
-    updated_at: new Date(cv.updated_at as string | Date).toISOString(),
-    views: Number(cv.views ?? 0),
-    downloads: Number(cv.downloads ?? 0)
-  }));
+  const filteredAvailableTemplates = availableTemplates.filter((template) =>
+    isAllowedPremiumSlug(String(template.slug ?? ''))
+  );
 
   const stats = {
-    total: cvs.length,
-    views: cvs.reduce((acc, cv) => acc + cv.views, 0),
-    downloads: cvs.reduce((acc, cv) => acc + cv.downloads, 0),
-    templates: availableTemplates.length
+    templates: filteredAvailableTemplates.length,
+    approvedPayments: Number(approvedPaymentsCount[0]?.count ?? 0),
+    hasBundle: hasBundle ? 'نعم' : 'لا',
+    status: 'نشط'
   };
 
   return (
@@ -153,74 +181,49 @@ export default async function DashboardPage() {
                 <LayoutTemplate size={18} />
                 استعراض القوالب
               </Link>
-              <Link href="/my-cvs" className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-                <FileText size={18} />
-                سيري الذاتية
+              <Link href="/pricing" className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                <CreditCard size={18} />
+                الأسعار
               </Link>
             </div>
           </div>
         </section>
 
         <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard title="السير الذاتية" value={stats.total} icon={<FileText size={20} />} />
-          <StatCard title="المشاهدات" value={stats.views} icon={<Eye size={20} />} />
-          <StatCard title="التحميلات" value={stats.downloads} icon={<Download size={20} />} />
-          <StatCard title="القوالب المتاحة" value={stats.templates} icon={<CreditCard size={20} />} />
+          <StatCard title="القوالب المتاحة" value={stats.templates} icon={<LayoutTemplate size={20} />} />
+          <StatCard title="عمليات الشراء" value={stats.approvedPayments} icon={<ShoppingCart size={20} />} />
+          <StatCard title="اشتراك الباقة" value={stats.hasBundle} icon={<Package size={20} />} />
+          <StatCard title="حالة الحساب" value={stats.status} icon={<CreditCard size={20} />} />
         </section>
 
-        <section className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">قوالبك المتاحة</h2>
-              <Link href="/templates" className="text-sm text-blue-600 hover:text-blue-700">عرض الكل</Link>
-            </div>
-            {availableTemplates.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">لا توجد قوالب متاحة حالياً. يمكنك الشراء من صفحة القوالب.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {availableTemplates.slice(0, 6).map((template) => (
-                  <Link
-                    key={`${template.id}-${String(template.slug)}`}
-                    href={`/templates?focus=${template.slug}`}
-                    className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 hover:border-blue-400 transition"
-                  >
-                    <p className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1">{String(template.name)}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{String(template.category ?? 'General')}</p>
-                  </Link>
-                ))}
-              </div>
-            )}
+        <section className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">قوالبك المتاحة</h2>
+            <Link href="/templates" className="text-sm text-blue-600 hover:text-blue-700">عرض الكل</Link>
           </div>
-
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">آخر السير الذاتية</h2>
-              <Link href="/my-cvs" className="text-sm text-blue-600 hover:text-blue-700">إدارة الكل</Link>
+          {filteredAvailableTemplates.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">لا توجد قوالب متاحة حالياً. يمكنك الشراء من صفحة القوالب.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredAvailableTemplates.map((template) => (
+                <Link
+                  key={`${template.id}-${String(template.slug)}`}
+                  href={`/templates?focus=${template.slug}`}
+                  className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 hover:border-blue-400 transition"
+                >
+                  <p className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1">{String(template.name)}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{String(template.category ?? 'General')}</p>
+                </Link>
+              ))}
             </div>
-            {cvs.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">لا توجد سير محفوظة حالياً.</p>
-            ) : (
-              <div className="space-y-3">
-                {cvs.map((cv) => (
-                  <div key={cv.id} className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
-                    <p className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1">{cv.title}</p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                      <span className="inline-flex items-center gap-1"><Eye size={13} /> {cv.views}</span>
-                      <span className="inline-flex items-center gap-1"><Download size={13} /> {cv.downloads}</span>
-                      <span>{new Date(cv.updated_at).toLocaleDateString('ar-EG')}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </section>
 
         <section className="mt-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 sm:p-6 shadow-lg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-lg font-bold">خطوتك التالية</h3>
-              <p className="text-blue-100 mt-1">اختر قالباً مناسباً ثم أكمل الشراء أو تحميل النسخة المتاحة لديك.</p>
+              <h3 className="text-lg font-bold">الخطوة التالية</h3>
+              <p className="text-blue-100 mt-1">اختر قالبًا مناسبًا ثم أكمل الشراء أو حمّل النسخة المتاحة لديك.</p>
             </div>
             <Link href="/templates" className="inline-flex items-center gap-2 bg-white text-blue-700 px-4 py-2.5 rounded-xl font-semibold hover:bg-slate-100 transition">
               <TrendingUp size={18} />
@@ -233,7 +236,7 @@ export default async function DashboardPage() {
   );
 }
 
-function StatCard({ title, value, icon }: { title: string; value: number; icon: ReactNode }) {
+function StatCard({ title, value, icon }: { title: string; value: number | string; icon: ReactNode }) {
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
       <div className="flex items-center justify-between">

@@ -11,6 +11,7 @@ type ExportRequestBody = {
   fileName?: string;
   slug?: string;
   pageTier?: 'one-page' | 'two-page';
+  pageFormat?: 'A4' | 'Letter';
 };
 
 const WINDOWS_CHROME_PATHS = [
@@ -98,6 +99,7 @@ export async function POST(req: Request) {
     const body = (await req.json()) as ExportRequestBody;
     const html = body?.html;
     const pageTier = body?.pageTier || 'one-page';
+    const pageFormat = body?.pageFormat === 'Letter' ? 'Letter' : 'A4';
     const slug = (body?.slug || '').toLowerCase();
 
     if (!html || typeof html !== 'string') {
@@ -117,72 +119,44 @@ export async function POST(req: Request) {
       deviceScaleFactor: 1
     });
     await page.setContent(html, { waitUntil: 'networkidle' });
+    await page.evaluate(async () => {
+      const images = Array.from(document.images || []);
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+          });
+        })
+      );
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+    });
+    await page.waitForTimeout(80);
     await page.emulateMedia({ media: 'print' });
 
-    await page.evaluate(({ tier, slugValue }) => {
-      const MM_TO_PX = 3.7795275591;
-      const pageHeightPx = (297 - 4 - 5) * MM_TO_PX;
-      const targetPages = tier === 'two-page' ? 2 : 1;
-      const content = document.querySelector<HTMLElement>('.pdf-content');
-      if (!content) return;
-
-      const naturalHeight = Math.max(content.scrollHeight, content.getBoundingClientRect().height);
-      if (naturalHeight <= 0) return;
-
-      const requiredScale = Math.min(1, (targetPages * pageHeightPx) / naturalHeight);
-      const isMedicalPro = slugValue === 'medicalpro';
-      const minScale = tier === 'two-page' ? (isMedicalPro ? 0.26 : 0.4) : 0.52;
-      const appliedScale = Math.max(minScale, requiredScale);
-
-      content.style.transformOrigin = 'top center';
-      content.style.transform = `scale(${appliedScale})`;
-      content.style.width = `${100 / appliedScale}%`;
-
-      if (tier !== 'two-page') return;
-
-      const blockSelectors = [
-        '.pdf-content main > section',
-        '.pdf-content aside > section',
-        '.pdf-content > section',
-        '.pdf-content section > article'
-      ];
-      const blocks = Array.from(
-        document.querySelectorAll<HTMLElement>(blockSelectors.join(','))
-      ).filter((el) => el.offsetHeight > 24);
-
-      if (blocks.length < 3) return;
-
-      const contentTop = content.getBoundingClientRect().top;
-      const pageIndexFor = (el: HTMLElement) =>
-        Math.floor(Math.max(0, el.getBoundingClientRect().top - contentTop) / pageHeightPx);
-
-      const pageMap = new Map<number, HTMLElement[]>();
-      for (const block of blocks) {
-        const idx = pageIndexFor(block);
-        const items = pageMap.get(idx) || [];
-        items.push(block);
-        pageMap.set(idx, items);
-      }
-
-      const indexes = Array.from(pageMap.keys()).sort((a, b) => a - b);
-      if (indexes.length !== 2) return;
-
-      const firstItems = pageMap.get(indexes[0]) || [];
-      const secondItems = pageMap.get(indexes[1]) || [];
-      if (secondItems.length >= 2 || firstItems.length < 2) return;
-
-      const moveCandidate = firstItems[firstItems.length - 1];
-      if (!moveCandidate) return;
-      moveCandidate.style.breakBefore = 'page';
-      moveCandidate.style.pageBreakBefore = 'always';
-    }, { tier: pageTier, slugValue: slug });
+    // Avoid transform-based auto-scaling because it breaks document flow and can
+    // push page-2 content into the middle of the page in some templates.
+    void pageTier;
+    const normalizedSlug = slug.replace(/[-_\s]/g, '');
+    const useZeroMargins =
+      normalizedSlug === 'minimalnordic' ||
+      normalizedSlug === 'salesstar' ||
+      normalizedSlug === 'productlead' ||
+      normalizedSlug === 'julianasilva' ||
+      normalizedSlug === 'alidaplanet';
 
     const pdfBuffer = await page.pdf({
-      format: 'A4',
+      format: pageFormat.toLowerCase() as 'a4' | 'letter',
       scale: 1,
       printBackground: true,
       preferCSSPageSize: true,
-      margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' }
+      displayHeaderFooter: false,
+      margin: useZeroMargins
+        ? { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' }
+        : { top: '16mm', right: '16mm', bottom: '16mm', left: '16mm' }
     });
 
     const safeName = sanitizeFileName(body?.fileName);

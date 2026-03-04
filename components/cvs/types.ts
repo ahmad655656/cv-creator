@@ -8,6 +8,8 @@ export interface Template {
 
 export interface PersonalInfo {
   fullName: string;
+  nameLine1?: string;
+  nameLine2?: string;
   jobTitle: string;
   email: string;
   phone: string;
@@ -48,6 +50,7 @@ export interface Skill {
   id: string;
   name: string;
   level: number;
+  percent?: number;
   category?: string;
 }
 

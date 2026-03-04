@@ -1,12 +1,8 @@
-'use client';
+﻿'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  CheckCircle, XCircle, Eye, Download, Search, 
-  Filter, ChevronLeft, ChevronRight, Clock, Package, Crown
-} from 'lucide-react';
-import Image from 'next/image';
+import { CheckCircle2, Clock3, Eye, Package, Search, XCircle } from 'lucide-react';
 
 interface Payment {
   id: number;
@@ -23,7 +19,7 @@ interface Payment {
   status: 'pending' | 'approved' | 'rejected';
   admin_notes: string | null;
   created_at: string;
-  payment_type?: 'single' | 'bundle'; // إضافة نوع الدفع
+  payment_type?: 'single' | 'bundle';
 }
 
 interface PaymentsManagerProps {
@@ -36,142 +32,127 @@ export function PaymentsManager({ payments }: PaymentsManagerProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [showImageModal, setShowImageModal] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [processingId, setProcessingId] = useState<number | null>(null);
 
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch = 
-      payment.user_name?.toLowerCase().includes(search.toLowerCase()) ||
-      payment.user_email?.toLowerCase().includes(search.toLowerCase()) ||
-      payment.template_name?.toLowerCase().includes(search.toLowerCase()) ||
-      payment.sender_number?.includes(search);
-    
-    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
-    const matchesType = typeFilter === 'all' || payment.payment_type === typeFilter;
-    
-    return matchesSearch && matchesStatus && matchesType;
-  });
+  const filteredPayments = useMemo(() => {
+    return payments.filter((payment) => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        payment.user_name?.toLowerCase().includes(q) ||
+        payment.user_email?.toLowerCase().includes(q) ||
+        payment.template_name?.toLowerCase().includes(q) ||
+        payment.sender_number?.includes(search);
+
+      const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
+      const matchesType = typeFilter === 'all' || payment.payment_type === typeFilter;
+
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [payments, search, statusFilter, typeFilter]);
 
   const handleApprove = async (paymentId: number) => {
-    if (!confirm('هل أنت متأكد من الموافقة على هذا الدفع؟')) return;
-    
+    if (!confirm('تأكيد الموافقة على هذه الدفعة؟')) return;
+
     setProcessingId(paymentId);
     try {
       const response = await fetch(`/api/admin/payments/${paymentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: 'approved',
-          adminNotes 
+          adminNotes,
         }),
       });
 
       if (response.ok) {
         router.refresh();
         setSelectedPayment(null);
-        setShowImageModal(false);
         setAdminNotes('');
       } else {
-        alert('حدث خطأ في الموافقة على الدفع');
+        alert('حدث خطأ أثناء الموافقة على الدفعة.');
       }
     } catch (error) {
-      console.error('Error approving payment:', error);
-      alert('حدث خطأ في الاتصال بالخادم');
+      console.error(error);
+      alert('تعذر الاتصال بالخادم.');
     } finally {
       setProcessingId(null);
     }
   };
 
   const handleReject = async (paymentId: number) => {
-    const reason = prompt('الرجاء إدخال سبب الرفض:');
+    const reason = prompt('أدخل سبب الرفض:');
     if (!reason) return;
-    
+
     setProcessingId(paymentId);
     try {
       const response = await fetch(`/api/admin/payments/${paymentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: 'rejected',
-          adminNotes: reason 
+          adminNotes: reason,
         }),
       });
 
       if (response.ok) {
         router.refresh();
         setSelectedPayment(null);
-        setShowImageModal(false);
         setAdminNotes('');
       } else {
-        alert('حدث خطأ في رفض الدفع');
+        alert('حدث خطأ أثناء رفض الدفعة.');
       }
     } catch (error) {
-      console.error('Error rejecting payment:', error);
-      alert('حدث خطأ في الاتصال بالخادم');
+      console.error(error);
+      alert('تعذر الاتصال بالخادم.');
     } finally {
       setProcessingId(null);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit"><CheckCircle size={12} /> مقبول</span>;
-      case 'rejected':
-        return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit"><XCircle size={12} /> مرفوض</span>;
-      default:
-        return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit"><Clock size={12} /> قيد المراجعة</span>;
-    }
-  };
-
-  const getPaymentTypeBadge = (type?: string) => {
-    if (type === 'bundle') {
-      return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit"><Package size={12} /> باقة شاملة</span>;
-    }
-    return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit"><Crown size={12} /> قالب مفرد</span>;
-  };
+  const formatCurrency = (amount: number) => `${amount.toLocaleString('ar-SY')} ل.س`;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ar-EG', {
+    return new Date(dateString).toLocaleString('ar-SY', {
       year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return amount.toLocaleString() + ' ل.س';
+  const statusBadge = (status: Payment['status']) => {
+    if (status === 'approved') {
+      return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700"><CheckCircle2 size={12} />مقبول</span>;
+    }
+    if (status === 'rejected') {
+      return <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700"><XCircle size={12} />مرفوض</span>;
+    }
+    return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700"><Clock3 size={12} />قيد المراجعة</span>;
   };
 
-  // إحصائيات حسب النوع
-  const bundlePayments = payments.filter(p => p.payment_type === 'bundle');
-  const singlePayments = payments.filter(p => p.payment_type !== 'bundle');
-
   return (
-    <div className="space-y-6">
-      {/* Search and Filter */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+    <div className="space-y-4">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+          <div className="lg:col-span-2 relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
-              placeholder="بحث باسم المستخدم أو البريد أو القالب..."
+              placeholder="بحث باسم المستخدم، البريد، القالب، أو رقم المرسل..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pr-10 px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-2.5 pr-10 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm"
           >
-            <option value="all">جميع الحالات</option>
+            <option value="all">كل الحالات</option>
             <option value="pending">قيد المراجعة</option>
             <option value="approved">مقبول</option>
             <option value="rejected">مرفوض</option>
@@ -180,122 +161,78 @@ export function PaymentsManager({ payments }: PaymentsManagerProps) {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm"
           >
-            <option value="all">جميع الأنواع</option>
+            <option value="all">كل الأنواع</option>
             <option value="single">قالب مفرد</option>
             <option value="bundle">باقة شاملة</option>
           </select>
         </div>
+      </section>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-6">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{payments.length}</div>
-            <div className="text-sm text-blue-600 dark:text-blue-400">إجمالي المعاملات</div>
-          </div>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4">
-            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-              {payments.filter(p => p.status === 'pending').length}
-            </div>
-            <div className="text-sm text-yellow-600 dark:text-yellow-400">قيد المراجعة</div>
-          </div>
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {payments.filter(p => p.status === 'approved').length}
-            </div>
-            <div className="text-sm text-green-600 dark:text-green-400">مقبولة</div>
-          </div>
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4">
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {payments.filter(p => p.status === 'rejected').length}
-            </div>
-            <div className="text-sm text-red-600 dark:text-red-400">مرفوضة</div>
-          </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {bundlePayments.length}
-            </div>
-            <div className="text-sm text-purple-600 dark:text-purple-400">باقات شاملة</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Payments Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
               <tr>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">المستخدم</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">القالب / الباقة</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">النوع</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">المبلغ</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">رقم المرسل</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">التاريخ</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">الحالة</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">الإجراءات</th>
+                <th className="text-right px-4 py-3 font-semibold">المستخدم</th>
+                <th className="text-right px-4 py-3 font-semibold">القالب</th>
+                <th className="text-right px-4 py-3 font-semibold">المبلغ</th>
+                <th className="text-right px-4 py-3 font-semibold">المرسل</th>
+                <th className="text-right px-4 py-3 font-semibold">التاريخ</th>
+                <th className="text-right px-4 py-3 font-semibold">الحالة</th>
+                <th className="text-right px-4 py-3 font-semibold">إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody>
               {filteredPayments.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900 dark:text-white">{payment.user_name}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{payment.user_email}</div>
+                <tr key={payment.id} className="border-t border-slate-100 dark:border-slate-800">
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">{payment.user_name}</p>
+                    <p className="text-xs text-slate-500">{payment.user_email}</p>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-gray-900 dark:text-white">
-                      {payment.payment_type === 'bundle' ? '📦 باقة شاملة' : payment.template_name}
-                    </div>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                    {payment.payment_type === 'bundle' ? 'الباقة الشاملة' : payment.template_name}
                   </td>
-                  <td className="px-6 py-4">
-                    {getPaymentTypeBadge(payment.payment_type)}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                    {formatCurrency(payment.amount)}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                    {payment.sender_number}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                    {formatDate(payment.created_at)}
-                  </td>
-                  <td className="px-6 py-4">
-                    {getStatusBadge(payment.status)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(payment.amount)}</td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{payment.sender_number}</td>
+                  <td className="px-4 py-3 text-slate-500">{formatDate(payment.created_at)}</td>
+                  <td className="px-4 py-3">{statusBadge(payment.status)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
                       <button
+                        type="button"
                         onClick={() => {
                           setSelectedPayment(payment);
-                          setShowImageModal(true);
+                          setAdminNotes(payment.admin_notes ?? '');
                         }}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                         title="عرض التفاصيل"
                       >
-                        <Eye size={18} className="text-gray-600 dark:text-gray-400" />
+                        <Eye size={16} />
                       </button>
-                      {payment.status === 'pending' && (
+                      {payment.status === 'pending' ? (
                         <>
                           <button
+                            type="button"
                             onClick={() => handleApprove(payment.id)}
                             disabled={processingId === payment.id}
-                            className="p-2 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition disabled:opacity-50"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
                             title="موافقة"
                           >
-                            <CheckCircle size={18} className="text-green-600" />
+                            <CheckCircle2 size={16} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleReject(payment.id)}
                             disabled={processingId === payment.id}
-                            className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition disabled:opacity-50"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-60"
                             title="رفض"
                           >
-                            <XCircle size={18} className="text-red-600" />
+                            <XCircle size={16} />
                           </button>
                         </>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -304,163 +241,105 @@ export function PaymentsManager({ payments }: PaymentsManagerProps) {
           </table>
         </div>
 
-        {filteredPayments.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">لا توجد مدفوعات مطابقة للبحث</p>
-          </div>
-        )}
-      </div>
+        {filteredPayments.length === 0 ? (
+          <div className="px-4 py-10 text-center text-sm text-slate-500">لا توجد نتائج مطابقة للفلاتر.</div>
+        ) : null}
+      </section>
 
-      {/* Payment Details Modal */}
-      {showImageModal && selectedPayment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-800 p-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                تفاصيل الدفع
-              </h3>
+      {selectedPayment ? (
+        <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">تفاصيل عملية الدفع</h3>
               <button
+                type="button"
                 onClick={() => {
-                  setShowImageModal(false);
                   setSelectedPayment(null);
+                  setAdminNotes('');
                 }}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
-                <XCircle size={20} />
+                <XCircle size={16} />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* نوع الدفع */}
-              {selectedPayment.payment_type === 'bundle' && (
-                <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 p-4 rounded-xl">
-                  <div className="flex items-center gap-2 font-bold text-lg mb-2">
-                    <Package size={24} />
-                    <span>باقة شاملة - جميع القوالب</span>
-                  </div>
-                  <p className="text-sm">سيتم تفعيل جميع القوالب للمستخدم بعد الموافقة</p>
+            <div className="space-y-4 p-4 sm:p-5">
+              {selectedPayment.payment_type === 'bundle' ? (
+                <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-700">
+                  <div className="font-semibold flex items-center gap-2"><Package size={16} /> هذا الطلب خاص بالباقة الشاملة.</div>
                 </div>
-              )}
+              ) : null}
 
-              {/* User Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="المستخدم" value={selectedPayment.user_name} />
+                <Field label="البريد" value={selectedPayment.user_email} />
+                <Field label="القالب" value={selectedPayment.payment_type === 'bundle' ? 'الباقة الشاملة' : selectedPayment.template_name} />
+                <Field label="المبلغ" value={formatCurrency(selectedPayment.amount)} />
+                <Field label="رقم المرسل" value={selectedPayment.sender_number} />
+                <Field label="رقم المستلم" value={selectedPayment.receiver_number} />
+                <Field label="التاريخ" value={formatDate(selectedPayment.transaction_date)} />
                 <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">اسم المستخدم</label>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedPayment.user_name}</p>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">البريد الإلكتروني</label>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedPayment.user_email}</p>
+                  <p className="mb-1 text-xs text-slate-500">الحالة</p>
+                  {statusBadge(selectedPayment.status)}
                 </div>
               </div>
 
-              {/* Payment Info */}
-              <div className="grid grid-cols-2 gap-4">
+              {selectedPayment.screenshot ? (
                 <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    {selectedPayment.payment_type === 'bundle' ? 'الباقة' : 'القالب'}
-                  </label>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {selectedPayment.payment_type === 'bundle' ? '📦 باقة شاملة' : selectedPayment.template_name}
-                  </p>
+                  <p className="mb-2 text-xs text-slate-500">صورة الإيصال</p>
+                  <img src={selectedPayment.screenshot} alt="Payment Screenshot" className="w-full rounded-xl border border-slate-200 dark:border-slate-700" />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">المبلغ</label>
-                  <p className="font-medium text-green-600 dark:text-green-400">{formatCurrency(selectedPayment.amount)}</p>
-                </div>
-              </div>
+              ) : null}
 
-              {/* Transaction Info */}
-              <div className="grid grid-cols-2 gap-4">
+              {selectedPayment.status === 'pending' ? (
                 <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">رقم المرسل</label>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedPayment.sender_number}</p>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">رقم المستلم</label>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedPayment.receiver_number}</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">تاريخ التحويل</label>
-                <p className="font-medium text-gray-900 dark:text-white">
-                  {new Date(selectedPayment.transaction_date).toLocaleString('ar-EG')}
-                </p>
-              </div>
-
-              {/* Screenshot */}
-              {selectedPayment.screenshot && (
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">صورة الإيصال</label>
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                    <img
-                      src={selectedPayment.screenshot}
-                      alt="Payment Screenshot"
-                      className="w-full h-auto"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Admin Notes */}
-              {selectedPayment.status === 'pending' && (
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">ملاحظات المشرف</label>
+                  <p className="mb-2 text-xs text-slate-500">ملاحظات المشرف</p>
                   <textarea
                     value={adminNotes}
                     onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="أضف ملاحظات حول هذا الدفع..."
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+                    placeholder="اكتب ملاحظاتك هنا..."
                   />
                 </div>
-              )}
+              ) : selectedPayment.admin_notes ? (
+                <Field label="ملاحظات المشرف" value={selectedPayment.admin_notes} />
+              ) : null}
 
-              {selectedPayment.admin_notes && (
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">ملاحظات المشرف</label>
-                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                    {selectedPayment.admin_notes}
-                  </p>
-                </div>
-              )}
-
-              {/* Status */}
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">الحالة</label>
-                <div className="flex items-center gap-2">
-                  {getStatusBadge(selectedPayment.status)}
-                </div>
-              </div>
-
-              {/* Actions for pending payments */}
-              {selectedPayment.status === 'pending' && (
-                <div className="flex gap-3 pt-4 border-t dark:border-gray-800">
+              {selectedPayment.status === 'pending' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
-                    onClick={() => {
-                      handleApprove(selectedPayment.id);
-                    }}
+                    type="button"
+                    onClick={() => handleApprove(selectedPayment.id)}
                     disabled={processingId === selectedPayment.id}
-                    className="flex-1 bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition font-medium disabled:opacity-50"
+                    className="rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
                   >
-                    {processingId === selectedPayment.id ? 'جاري المعالجة...' : 'موافقة على الدفع'}
+                    {processingId === selectedPayment.id ? 'جار المعالجة...' : 'موافقة على الدفع'}
                   </button>
                   <button
-                    onClick={() => {
-                      handleReject(selectedPayment.id);
-                    }}
+                    type="button"
+                    onClick={() => handleReject(selectedPayment.id)}
                     disabled={processingId === selectedPayment.id}
-                    className="flex-1 bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition font-medium disabled:opacity-50"
+                    className="rounded-xl bg-rose-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
                   >
-                    {processingId === selectedPayment.id ? 'جاري المعالجة...' : 'رفض الدفع'}
+                    {processingId === selectedPayment.id ? 'جار المعالجة...' : 'رفض الدفع'}
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="mb-1 text-xs text-slate-500">{label}</p>
+      <p className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm text-slate-800 dark:text-slate-200">{value}</p>
+    </div>
+  );
+}
+

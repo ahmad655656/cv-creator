@@ -1,212 +1,203 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Menu, X, User, LogOut, Settings, CreditCard, FileText, 
-  ChevronDown, Moon, Sun, LayoutDashboard
+import {
+  Menu,
+  X,
+  User,
+  LogOut,
+  Settings,
+  CreditCard,
+  FileText,
+  ChevronDown,
+  Moon,
+  Sun,
+  LayoutDashboard,
+  Type,
+  Mail,
+  Sparkles
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 
+type NavLink = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+};
+
+const NAV_LINKS: NavLink[] = [
+  { href: '/templates', label: 'القوالب', icon: FileText },
+  { href: '/text-studio', label: 'النص المزخرف', icon: Type },
+  { href: '/pricing', label: 'الأسعار', icon: CreditCard },
+  { href: '/about', label: 'عن الموقع', icon: Sparkles },
+  { href: '/contact', label: 'اتصل بنا', icon: Mail }
+];
+
+function isPathActive(pathname: string, href: string) {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function Header() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const { toggleTheme } = useTheme();
 
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const isAdmin = session?.user?.role === 'admin';
+
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setIsScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  useEffect(() => {
+    setIsMobileOpen(false);
+    setIsUserMenuOpen(false);
+  }, [pathname]);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' });
   };
 
-  // تحديد إذا كان المستخدم أدمن
-  const isAdmin = session?.user?.role === 'admin';
-
-  // روابط القائمة
-  const navLinks = [
-    { href: '/templates', label: 'القوالب', icon: FileText },
-    { href: '/study-questions', label: 'أسئلة من النص', icon: FileText },
-    { href: '/pricing', label: 'الأسعار', icon: CreditCard },
-    { href: '/about', label: 'عن الموقع', icon: FileText },
-    { href: '/contact', label: 'اتصل بنا', icon: FileText },
-  ];
-
   return (
-    <header 
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg' 
-          : 'bg-white dark:bg-gray-900'
+    <header
+      className={`sticky top-0 z-50 border-b border-slate-200/80 dark:border-slate-800 transition-all duration-300 ${
+        isScrolled
+          ? 'bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl shadow-[0_6px_24px_rgba(15,23,42,0.08)]'
+          : 'bg-white/98 dark:bg-slate-950/98'
       }`}
     >
-      <nav className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg transform group-hover:rotate-6 transition">
+      <nav className="container mx-auto px-3 sm:px-4 lg:px-6" dir="rtl">
+        <div className="h-16 lg:h-[72px] flex items-center justify-between gap-2">
+          <Link href="/" className="group flex items-center gap-2 shrink-0">
+            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white font-black text-sm flex items-center justify-center shadow-sm">
               CV
-            </div>
-            <span className="text-xl font-bold text-gray-900 dark:text-white">
+            </span>
+            <span className="hidden sm:block text-[15px] lg:text-[17px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               CV Creator
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
+          <div className="hidden lg:flex items-center gap-1.5 rounded-2xl bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 px-1.5 py-1.5">
+            {NAV_LINKS.map((link) => {
               const Icon = link.icon;
-              const isActive = pathname === link.href;
-              
+              const active = isPathActive(pathname, link.href);
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                    isActive
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold transition ${
+                    active
+                      ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 shadow-sm'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-800/70'
                   }`}
                 >
-                  <Icon size={16} />
-                  {link.label}
+                  <Icon size={15} />
+                  <span>{link.label}</span>
                 </Link>
               );
             })}
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-2">
-            {/* Dark Mode Toggle */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               onClick={toggleTheme}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
-              aria-label="Toggle dark mode"
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              aria-label="تبديل الوضع"
             >
-              <Moon size={20} className="block dark:hidden" />
-              <Sun size={20} className="hidden dark:block" />
+              <Moon size={18} className="block dark:hidden" />
+              <Sun size={18} className="hidden dark:block" />
             </button>
 
             <NotificationBell />
 
-            {/* User Menu */}
             {status === 'authenticated' ? (
               <div className="relative">
                 <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 p-1 pr-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition group"
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 px-1.5 sm:px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-500 text-white font-bold text-sm flex items-center justify-center">
                     {session.user.name?.charAt(0) || 'U'}
-                  </div>
-                  <span className="hidden lg:block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {session.user.name?.split(' ')[0]}
                   </span>
-                  <ChevronDown 
-                    size={16} 
-                    className={`text-gray-500 transition-transform duration-200 ${
-                      showUserMenu ? 'rotate-180' : ''
-                    }`}
+                  <span className="hidden md:block text-sm font-semibold text-slate-700 dark:text-slate-200 max-w-[110px] truncate">
+                    {session.user.name || 'المستخدم'}
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={`text-slate-500 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
 
-                {/* Dropdown Menu */}
-                {showUserMenu && (
-                  <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-800 py-2 z-50">
-                    {/* User Info */}
-                    <div className="px-4 py-3 border-b dark:border-gray-800">
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {session.user.name}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {session.user.email}
-                      </p>
+                {isUserMenuOpen && (
+                  <div className="absolute left-0 mt-2 w-72 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl z-[70] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
+                      <p className="font-bold text-slate-900 dark:text-slate-100">{session.user.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{session.user.email}</p>
                       {isAdmin && (
-                        <span className="mt-2 inline-block bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-1 rounded-full">
+                        <span className="inline-flex mt-2 px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900/25 text-purple-700 dark:text-purple-300">
                           مدير النظام
                         </span>
                       )}
                     </div>
 
-                    {/* Menu Items */}
-                    <div className="py-2">
-                      {/* Dashboard Link - حسب نوع المستخدم */}
+                    <div className="p-2">
                       <Link
                         href={isAdmin ? '/admin' : '/dashboard'}
-                        className="w-full px-4 py-2 text-right hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                       >
-                        <LayoutDashboard size={18} />
-                        {isAdmin ? 'لوحة التحكم' : 'لوحة التحكم'}
+                        <LayoutDashboard size={16} />
+                        لوحة التحكم
                       </Link>
-
-                      {/* Admin Links - تظهر فقط للأدمن */}
                       {isAdmin && (
                         <>
                           <Link
                             href="/admin/users"
-                            className="w-full px-4 py-2 text-right hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                            onClick={() => setShowUserMenu(false)}
+                            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                           >
-                            <User size={18} />
+                            <User size={16} />
                             إدارة المستخدمين
                           </Link>
                           <Link
                             href="/admin/payments"
-                            className="w-full px-4 py-2 text-right hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                            onClick={() => setShowUserMenu(false)}
+                            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                           >
-                            <CreditCard size={18} />
+                            <CreditCard size={16} />
                             إدارة المدفوعات
                           </Link>
                         </>
                       )}
-
-                      {/* روابط عامة للمستخدمين المسجلين */}
                       <Link
                         href="/profile"
-                        className="w-full px-4 py-2 text-right hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                       >
-                        <User size={18} />
+                        <User size={16} />
                         الملف الشخصي
-                      </Link>
-
-                      <Link
-                        href="/my-cvs"
-                        className="w-full px-4 py-2 text-right hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <FileText size={18} />
-                        سيري الذاتية
-                      </Link>
-
-                      <Link
+                      </Link>                      <Link
                         href="/settings"
-                        className="w-full px-4 py-2 text-right hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                       >
-                        <Settings size={18} />
+                        <Settings size={16} />
                         الإعدادات
                       </Link>
                     </div>
 
-                    {/* Logout Button */}
-                    <div className="border-t dark:border-gray-800 pt-2">
+                    <div className="p-2 border-t border-slate-200 dark:border-slate-800">
                       <button
                         onClick={handleSignOut}
-                        className="w-full px-4 py-2 text-right hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-600 dark:text-red-400"
+                        className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
-                        <LogOut size={18} />
+                        <LogOut size={16} />
                         تسجيل الخروج
                       </button>
                     </div>
@@ -214,69 +205,79 @@ export function Header() {
                 )}
               </div>
             ) : (
-              // روابط للزوار
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5">
                 <Link
                   href="/login"
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm font-medium transition"
+                  className="px-3 py-2 text-sm font-semibold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   تسجيل الدخول
                 </Link>
                 <Link
                   href="/register"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition"
+                  className="px-3.5 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition"
                 >
                   إنشاء حساب
                 </Link>
               </div>
             )}
 
-            {/* Mobile Menu Button */}
             <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+              onClick={() => setIsMobileOpen((prev) => !prev)}
+              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              aria-label="القائمة"
             >
-              {isOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {isOpen && (
-          <div className="md:hidden py-4 border-t dark:border-gray-800">
-            <div className="flex flex-col gap-2">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                const isActive = pathname === link.href;
-                
-                return (
+        {isMobileOpen && (
+          <div className="lg:hidden pb-3">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-sm">
+              <div className="grid grid-cols-1 gap-1.5">
+                {NAV_LINKS.map((link) => {
+                  const Icon = link.icon;
+                  const active = isPathActive(pathname, link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                        active
+                          ? 'bg-blue-50 dark:bg-blue-900/25 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40'
+                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {status !== 'authenticated' && (
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
                   <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                      isActive
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
-                    onClick={() => setIsOpen(false)}
+                    href="/login"
+                    className="text-center px-3 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   >
-                    <Icon size={16} />
-                    {link.label}
+                    تسجيل الدخول
                   </Link>
-                );
-              })}
+                  <Link
+                    href="/register"
+                    className="text-center px-3 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 text-white"
+                  >
+                    إنشاء حساب
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
       </nav>
 
-      {/* Overlay لإغلاق القائمة المنسدلة عند الضغط خارجها */}
-      {showUserMenu && (
-        <div 
-          className="fixed inset-0 z-40"
-          onClick={() => setShowUserMenu(false)}
-        />
-      )}
+      {isUserMenuOpen && <div className="fixed inset-0 z-[60]" onClick={() => setIsUserMenuOpen(false)} />}
     </header>
   );
 }
+

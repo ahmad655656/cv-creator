@@ -105,7 +105,7 @@ export default function BundlePaymentPage() {
               <Package size={28} />
               <h1 className="text-2xl font-bold">الباقة الشاملة</h1>
             </div>
-            <p className="text-white/90">جميع القوالب الاحترافية (10 قوالب)</p>
+            <p className="text-white/90">جميع القوالب الاحترافية (7 قوالب)</p>
           </div>
 
           {/* Steps */}
@@ -137,7 +137,7 @@ export default function BundlePaymentPage() {
                   <ul className="space-y-2">
                     <li className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
                       <CheckCircle size={16} />
-                      <span>10 قوالب احترافية</span>
+                      <span>7 قوالب احترافية</span>
                     </li>
                     <li className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
                       <CheckCircle size={16} />

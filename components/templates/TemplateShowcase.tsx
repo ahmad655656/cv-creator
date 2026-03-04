@@ -2,14 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Crown, Star, Download, CreditCard, Image as ImageIcon, CheckCircle, Eye, X, Plus, Minus } from 'lucide-react';
+import { Crown, Star, ShoppingCart, CreditCard, Image as ImageIcon, CheckCircle, Eye, X, KeyRound } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
+import { SecretCvFormModal } from './SecretCvFormModal';
 import { renderPremiumTemplateNode } from '@/components/templates/premium/renderTemplateNode';
 import {
   TemplatePdfExporter,
   type TemplatePdfExporterHandle
 } from '@/components/templates/TemplatePdfExporter';
 import type { TemplateConfig } from '@/lib/types/template-config';
+import type { CVData } from '@/components/cvs/types';
+import { isAllowedPremiumSlug, normalizeTemplateSlug } from '@/lib/templates/allowedPremiumSlugs';
 
 interface Template {
   id: number;
@@ -22,7 +25,7 @@ interface Template {
   is_premium: boolean;
   price: number;
   rating: number;
-  downloads: number;
+  purchases: number;
 }
 
 interface TemplateShowcaseProps {
@@ -33,6 +36,29 @@ interface TemplateShowcaseProps {
 
 const PREVIEW_WIDTH = 840;
 const PREVIEW_HEIGHT = 1188;
+const MINIMAL_NORDIC_CARD_IMAGE = '/Minimal Nordic.jpg';
+const SALES_STAR_CARD_IMAGE = '/SalesStar.jpg';
+const RICHARD_CARD_IMAGE = '/richard.jpg';
+const ANDREEMAAS_CARD_IMAGE = '/andree.png';
+const JULIANA_SILVA_CARD_IMAGE = '/julianaSilva.png';
+const PRODUCT_LEAD_CARD_IMAGE = '/ProductLead.png';
+const ALIDA_PLANET_CARD_IMAGE = '/emmajames.jpg';
+
+function normalizeSlug(slug: string) {
+  return normalizeTemplateSlug(slug);
+}
+
+function getTemplateCardImage(slug: string) {
+  const normalizedSlug = normalizeSlug(slug);
+  if (normalizedSlug === 'minimalnordic') return MINIMAL_NORDIC_CARD_IMAGE;
+  if (normalizedSlug === 'salesstar') return SALES_STAR_CARD_IMAGE;
+  if (normalizedSlug === 'richard') return RICHARD_CARD_IMAGE;
+  if (normalizedSlug === 'productlead') return PRODUCT_LEAD_CARD_IMAGE;
+  if (normalizedSlug === 'andreemas') return ANDREEMAAS_CARD_IMAGE;
+  if (normalizedSlug === 'julianasilva') return JULIANA_SILVA_CARD_IMAGE;
+  if (normalizedSlug === 'alidaplanet') return ALIDA_PLANET_CARD_IMAGE;
+  return undefined;
+}
 
 function useAutoScale(ref: React.RefObject<HTMLElement | null>, padding = 16) {
   const [scale, setScale] = useState(0.35);
@@ -60,12 +86,14 @@ function useAutoScale(ref: React.RefObject<HTMLElement | null>, padding = 16) {
 function TemplateCardLivePreview({
   slug,
   config,
+  staticImageSrc,
   zoom = 0.98,
   frameClassName = 'inset-[10px]',
   topOffset = 3
 }: {
   slug: string;
   config?: Partial<TemplateConfig> | null;
+  staticImageSrc?: string;
   zoom?: number;
   frameClassName?: string;
   topOffset?: number;
@@ -73,6 +101,21 @@ function TemplateCardLivePreview({
   const frameRef = useRef<HTMLDivElement>(null);
   const fitScale = useAutoScale(frameRef, 16);
   const node = renderPremiumTemplateNode({ slug, config });
+
+  if (staticImageSrc) {
+    return (
+      <div dir="ltr" className="h-full w-full bg-[#f3f5f7] p-0.5">
+        <div className="h-full w-full overflow-hidden rounded-[12px] border border-slate-200/70 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.1)]">
+          <img
+            src={staticImageSrc}
+            alt={`${slug} template preview`}
+            className="w-full h-full object-contain object-center bg-white"
+            draggable={false}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (!node) {
     return (
@@ -101,37 +144,54 @@ function TemplateCardLivePreview({
   );
 }
 
-function TemplatePreviewViewport({
-  slug,
-  config,
-  zoom
-}: {
-  slug: string;
-  config?: Partial<TemplateConfig> | null;
-  zoom: number;
-}) {
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const fitScale = useAutoScale(viewportRef, 24);
-  const node = renderPremiumTemplateNode({ slug, config });
+function downloadPdfFromUrl(url: string, fileName: string) {
+  const safeName = (fileName || 'template').replace(/[\\/:*?"<>|]/g, '-').trim() || 'template';
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${safeName}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
 
-  if (!node) {
-    return (
-      <div className="h-full w-full flex items-center justify-center text-slate-500 dark:text-slate-400">
-        <ImageIcon size={40} />
-      </div>
-    );
-  }
+function PdfPreviewModal({
+  open,
+  fileUrl,
+  fileName,
+  onClose
+}: {
+  open: boolean;
+  fileUrl: string | null;
+  fileName: string;
+  onClose: () => void;
+}) {
+  if (!open || !fileUrl) return null;
 
   return (
-    <div ref={viewportRef} className="h-full w-full overflow-auto bg-grid-pattern rounded-xl border border-slate-200 dark:border-slate-800">
-      <div className="relative h-full min-h-[720px]">
-        <div
-          className="absolute left-1/2 top-3 sm:top-5 origin-top"
-          style={{ transform: `translateX(-50%) scale(${fitScale * zoom})`, transformOrigin: 'top center' }}
-        >
-          <div className="bg-white rounded-lg overflow-hidden shadow-[0_30px_75px_rgba(15,23,42,0.25)]" style={{ width: PREVIEW_WIDTH, minHeight: PREVIEW_HEIGHT }}>
-            {node}
+    <div className="fixed inset-0 z-[80] bg-slate-950/85 p-2 sm:p-4 md:p-6">
+      <div className="h-full w-full max-w-6xl mx-auto bg-white dark:bg-gray-950 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+        <div className="h-14 px-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 truncate">
+            معاينة PDF - {fileName}
+          </h3>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => downloadPdfFromUrl(fileUrl, fileName)}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+            >
+              تحميل PDF
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
           </div>
+        </div>
+        <div className="h-[calc(100%-56px)] bg-slate-100 dark:bg-slate-900">
+          <iframe title="PDF Preview" src={fileUrl} className="h-full w-full border-0" />
         </div>
       </div>
     </div>
@@ -144,14 +204,24 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
   const pdfExporterRef = useRef<TemplatePdfExporterHandle>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [secretTemplate, setSecretTemplate] = useState<Template | null>(null);
+  const [templateDataOverrides, setTemplateDataOverrides] = useState<Record<string, CVData>>({});
+  const [downloadedPdfUrl, setDownloadedPdfUrl] = useState<string | null>(null);
+  const [downloadedPdfName, setDownloadedPdfName] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [downloadingTemplateId, setDownloadingTemplateId] = useState<number | null>(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const [previewZoom, setPreviewZoom] = useState(1);
 
-  const categories = ['all', ...new Set(templates.map((t) => t.category))];
-  const filteredTemplates = templates.filter((template) => {
+  useEffect(() => {
+    return () => {
+      if (downloadedPdfUrl) URL.revokeObjectURL(downloadedPdfUrl);
+    };
+  }, [downloadedPdfUrl]);
+
+  const visibleTemplates = templates.filter((template) => isAllowedPremiumSlug(template.slug));
+  const categories = ['all', ...new Set(visibleTemplates.map((t) => t.category))];
+  const filteredTemplates = visibleTemplates.filter((template) => {
     const matchesSearch =
       template.name.toLowerCase().includes(search.toLowerCase()) ||
       template.description.toLowerCase().includes(search.toLowerCase());
@@ -159,17 +229,35 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
     return matchesSearch && matchesCategory;
   });
 
-  const handleTemplateDownload = async (template: Template) => {
+  const handleTemplateDownload = async (template: Template, data?: CVData, previewBeforeDownload = false) => {
     try {
       setDownloadingTemplateId(template.id);
       if (!pdfExporterRef.current) throw new Error('PDF exporter is not ready');
-      await pdfExporterRef.current.exportTemplate({
-        id: template.id,
-        name: template.name,
-        slug: template.slug,
-        config: template.config,
-        pageTier: template.config?.pageTier || (template.category === 'Two Pages' ? 'two-page' : 'one-page')
-      });
+      const normalizedSlug = normalizeSlug(template.slug);
+      const exportData = data || templateDataOverrides[normalizedSlug];
+      if (previewBeforeDownload) {
+        const blob = await pdfExporterRef.current.generateTemplatePdfBlob({
+          id: template.id,
+          name: template.name,
+          slug: template.slug,
+          config: template.config,
+          pageTier: template.config?.pageTier || (template.category === 'Two Pages' ? 'two-page' : 'one-page'),
+          data: exportData
+        });
+        if (downloadedPdfUrl) URL.revokeObjectURL(downloadedPdfUrl);
+        const nextUrl = URL.createObjectURL(blob);
+        setDownloadedPdfUrl(nextUrl);
+        setDownloadedPdfName(template.name);
+      } else {
+        await pdfExporterRef.current.exportTemplate({
+          id: template.id,
+          name: template.name,
+          slug: template.slug,
+          config: template.config,
+          pageTier: template.config?.pageTier || (template.category === 'Two Pages' ? 'two-page' : 'one-page'),
+          data: exportData
+        });
+      }
     } catch (error) {
       console.error('Download template error:', error);
       const message = error instanceof Error ? error.message : 'تعذر تحميل ملف PDF. حاول مرة أخرى.';
@@ -177,15 +265,6 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
     } finally {
       setDownloadingTemplateId(null);
     }
-  };
-
-  const handleTemplateClick = (template: Template) => {
-    if (purchasedTemplates.has(template.id)) {
-      void handleTemplateDownload(template);
-      return;
-    }
-    setSelectedTemplate(template);
-    setShowPaymentModal(true);
   };
 
   const formatNumber = (num: number) => num.toLocaleString('en-US');
@@ -215,7 +294,7 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {filteredTemplates.map((template) => {
           const isPurchased = purchasedTemplates.has(template.id);
           const isDownloading = downloadingTemplateId === template.id;
@@ -223,95 +302,97 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
           return (
             <article
               key={template.id}
-              onClick={() => handleTemplateClick(template)}
-              className="group bg-white dark:bg-gray-900 rounded-2xl shadow-[0_16px_45px_rgba(15,23,42,0.14)] overflow-hidden hover:shadow-[0_26px_55px_rgba(15,23,42,0.2)] transition-all duration-300 cursor-pointer transform hover:-translate-y-1 border border-slate-200 dark:border-slate-800"
+              className="group bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-[0_4px_16px_rgba(15,23,42,0.08)] hover:shadow-[0_10px_26px_rgba(15,23,42,0.14)] transition-all duration-300 overflow-hidden"
             >
-              <div className="relative aspect-[210/297] bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                <TemplateCardLivePreview slug={template.slug} config={template.config} />
+              <div className="relative aspect-[210/297] bg-[#f3f5f7] dark:bg-slate-800 overflow-hidden">
+                <TemplateCardLivePreview
+                  slug={template.slug}
+                  config={template.config}
+                  staticImageSrc={getTemplateCardImage(template.slug)}
+                />
 
-                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/28 to-transparent pointer-events-none" />
 
                 {template.is_premium && (
-                  <div className="absolute top-3 right-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+                  <div className="absolute top-2 right-2 bg-amber-50/95 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 shadow-sm">
                     <Crown size={12} />
-                    مميز
+                    Premium
                   </div>
                 )}
 
                 {isPurchased && (
-                  <div className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
-                    <CheckCircle size={12} />
-                    مملوك
+                  <div className="absolute top-2 left-2 bg-emerald-600/95 text-white px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 shadow-sm">
+                    <CheckCircle size={11} />
+                    Owned
                   </div>
                 )}
 
                 {!isPurchased && (
-                  <div className="absolute bottom-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                  <div className="absolute bottom-2 left-2 bg-blue-600/95 text-white px-2 py-0.5 rounded-full text-[11px] font-semibold shadow-sm">
                     {formatNumber(template.price)} ل.س
                   </div>
                 )}
               </div>
 
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2 gap-3">
-                  <h3 className="font-bold text-base sm:text-lg text-gray-900 dark:text-white leading-tight">{template.name}</h3>
-                  <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 rounded-full shrink-0">
-                    <Star size={12} className="text-yellow-500 fill-yellow-500" />
-                    <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">
+              <div className="p-3.5">
+                <div className="flex justify-between items-start mb-1.5 gap-2">
+                  <h3 className="font-semibold text-[13px] sm:text-[14px] text-slate-900 dark:text-slate-100 leading-tight">{template.name}</h3>
+                  <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-full shrink-0 border border-amber-100 dark:border-amber-900/40">
+                    <Star size={11} className="text-amber-500 fill-amber-500" />
+                    <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
                       {formatNumber(template.rating || 4.5)}
                     </span>
                   </div>
                 </div>
 
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{template.description}</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] mb-2.5 line-clamp-2">{template.description}</p>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
                     {template.category}
                   </span>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Download size={14} />
-                    <span>{formatNumber(template.downloads || 0)}</span>
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
+                    <ShoppingCart size={12} />
+                    <span>{formatNumber(template.purchases || 0)}</span>
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-1.5">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setPreviewTemplate(template);
-                      setPreviewZoom(1);
                     }}
-                    className="w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="w-full py-1.5 rounded-lg font-medium transition flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px]"
                   >
-                    <Eye size={16} />
+                    <Eye size={14} />
                     معاينة
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isPurchased) {
-                        void handleTemplateDownload(template);
+                        setSecretTemplate(template);
                       } else {
                         setSelectedTemplate(template);
                         setShowPaymentModal(true);
                       }
                     }}
                     disabled={isDownloading}
-                    className={`w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
+                    className={`w-full py-1.5 rounded-lg font-medium transition flex items-center justify-center gap-1.5 text-[11px] ${
                       isPurchased
-                        ? 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed'
+                        ? 'bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-60 disabled:cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
                   >
                     {isPurchased ? (
                       <>
-                        <Download size={16} />
-                        {isDownloading ? 'جاري التحميل...' : 'تحميل PDF'}
+                        <KeyRound size={14} />
+                        فتح النموذج
                       </>
                     ) : (
                       <>
-                        <CreditCard size={16} />
+                        <CreditCard size={14} />
                         شراء القالب
                       </>
                     )}
@@ -333,21 +414,6 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
 
               <div className="flex items-center gap-1 sm:gap-2">
                 <button
-                  onClick={() => setPreviewZoom((z) => Math.max(0.7, Number((z - 0.1).toFixed(2))))}
-                  className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                  aria-label="Zoom out"
-                >
-                  <Minus size={16} />
-                </button>
-                <span className="text-xs w-14 text-center text-slate-600 dark:text-slate-300">{Math.round(previewZoom * 100)}%</span>
-                <button
-                  onClick={() => setPreviewZoom((z) => Math.min(1.35, Number((z + 0.1).toFixed(2))))}
-                  className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                  aria-label="Zoom in"
-                >
-                  <Plus size={16} />
-                </button>
-                <button
                   onClick={() => setPreviewTemplate(null)}
                   className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
                 >
@@ -357,11 +423,47 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
             </div>
 
             <div className="h-[calc(100%-56px)] bg-slate-100 dark:bg-slate-900 p-2 sm:p-4">
-              <TemplatePreviewViewport slug={previewTemplate.slug} config={previewTemplate.config} zoom={previewZoom} />
+              <TemplateCardLivePreview
+                slug={previewTemplate.slug}
+                config={previewTemplate.config}
+                staticImageSrc={getTemplateCardImage(previewTemplate.slug)}
+                zoom={1}
+                frameClassName="inset-[8px] sm:inset-[14px]"
+                topOffset={0}
+              />
             </div>
           </div>
         </div>
       )}
+
+      {secretTemplate && (
+        <SecretCvFormModal
+          template={{ id: secretTemplate.id, name: secretTemplate.name, slug: secretTemplate.slug }}
+          open={Boolean(secretTemplate)}
+          loading={downloadingTemplateId === secretTemplate.id}
+          onClose={() => {
+            if (downloadingTemplateId === secretTemplate.id) return;
+            setSecretTemplate(null);
+          }}
+          onSubmit={async (data) => {
+            const safeData = JSON.parse(JSON.stringify(data)) as CVData;
+            setTemplateDataOverrides((prev) => ({ ...prev, [normalizeSlug(secretTemplate.slug)]: safeData }));
+            await handleTemplateDownload(secretTemplate, safeData, true);
+            setSecretTemplate(null);
+          }}
+        />
+      )}
+
+      <PdfPreviewModal
+        open={Boolean(downloadedPdfUrl)}
+        fileUrl={downloadedPdfUrl}
+        fileName={downloadedPdfName}
+        onClose={() => {
+          if (downloadedPdfUrl) URL.revokeObjectURL(downloadedPdfUrl);
+          setDownloadedPdfUrl(null);
+          setDownloadedPdfName('');
+        }}
+      />
 
       {showPaymentModal && selectedTemplate && (
         <PaymentModal
@@ -380,4 +482,3 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
     </>
   );
 }
-

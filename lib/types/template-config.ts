@@ -1,4 +1,5 @@
 ﻿export interface TemplateConfig {
+  pageFormat?: 'A4' | 'Letter';
   primaryColor: string;
   secondaryColor: string;
   headingColor: string;

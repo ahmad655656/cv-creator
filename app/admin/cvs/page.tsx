@@ -2,6 +2,7 @@
 import { authOptions } from '@/lib/auth/auth';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
+import { AdminPageShell } from '@/components/admin/AdminPageShell';
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -19,23 +20,34 @@ export default async function AdminCvsPage() {
   `;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="container mx-auto px-4 py-8">
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8">
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">إدارة السير الذاتية</h1>
-          <div className="mt-5 space-y-2">
-            {rows.map((row) => (
-              <div key={row.id} className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-slate-100">{String(row.title)}</p>
-                  <p className="text-xs text-slate-500">{String(row.user_name)}</p>
-                </div>
-                <span className="text-xs text-slate-500">{new Date(row.updated_at as string | Date).toLocaleDateString('ar-EG')}</span>
-              </div>
-            ))}
-          </div>
+    <AdminPageShell
+      title="إدارة السير الذاتية"
+      description="استعراض آخر السير المعدلة وربطها بالمستخدمين."
+      currentPath="/admin/cvs"
+    >
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-800/60">
+              <tr className="text-slate-600 dark:text-slate-300">
+                <th className="text-right py-3 px-4 font-semibold">العنوان</th>
+                <th className="text-right py-3 px-4 font-semibold">المستخدم</th>
+                <th className="text-right py-3 px-4 font-semibold">آخر تحديث</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={Number(row.id)} className="border-t border-slate-100 dark:border-slate-800">
+                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">{String(row.title)}</td>
+                  <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{String(row.user_name)}</td>
+                  <td className="py-3 px-4 text-slate-500">{new Date(row.updated_at as string | Date).toLocaleDateString('ar-SY')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
-    </div>
+      </section>
+    </AdminPageShell>
   );
 }
+

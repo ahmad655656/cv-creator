@@ -7,8 +7,8 @@ import { Header } from '@/components/layout/Header';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CV Creator - أنشئ سيرتك الذاتية الاحترافية',
-  description: 'منصة متكاملة لإنشاء السير الذاتية الاحترافية',
+  title: 'CV Creator - شراء قوالب سيرة ذاتية احترافية',
+  description: 'منصة مخصصة لشراء قوالب سيرة ذاتية احترافية مع معاينة دقيقة قبل التحميل.',
 };
 
 export default function RootLayout({
@@ -39,9 +39,7 @@ export default function RootLayout({
         />
         <Providers>
           <Header />
-          <main className="min-h-screen">
-            {children}
-          </main>
+          <main className="min-h-screen">{children}</main>
         </Providers>
       </body>
     </html>

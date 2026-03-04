@@ -1,12 +1,14 @@
-import { getServerSession } from 'next-auth';
+﻿import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import { TemplateShowcase } from '@/components/templates/TemplateShowcase';
 import type { TemplateConfig } from '@/lib/types/template-config';
+import { isAllowedPremiumSlug } from '@/lib/templates/allowedPremiumSlugs';
 
 const sql = neon(process.env.DATABASE_URL!);
-const BUNDLE_TEMPLATE_LIMIT = 10;
+const BUNDLE_TEMPLATE_LIMIT = 7;
+const ALLOWED_SLUGS_SQL = ['richard', 'salesstar', 'alidaplanet', 'andreemas', 'julianasilva', 'minimalnordic', 'productlead'];
 
 export default async function TemplatesPage() {
   const session = await getServerSession(authOptions);
@@ -15,9 +17,20 @@ export default async function TemplatesPage() {
 
   const [templates, userPurchases, userBundle] = await Promise.all([
     sql`
-      SELECT * FROM templates
+      SELECT
+        t.*,
+        COALESCE(p.purchase_count, 0) AS purchases_count
+      FROM templates t
+      LEFT JOIN (
+        SELECT template_id, COUNT(*)::int AS purchase_count
+        FROM payments
+        WHERE status = 'approved'
+          AND template_id != 0
+        GROUP BY template_id
+      ) p ON p.template_id = t.id
       WHERE is_premium = true
-      ORDER BY price DESC, name
+      AND regexp_replace(lower(t.slug), '[-_\\s]', '', 'g') = ANY(${ALLOWED_SLUGS_SQL})
+      ORDER BY t.price DESC, t.name
     `,
     sql`
       SELECT template_id FROM payments
@@ -34,7 +47,9 @@ export default async function TemplatesPage() {
     `
   ]);
 
-  const normalizedTemplates = templates.map((template) => ({
+  const normalizedTemplates = templates
+    .filter((template) => isAllowedPremiumSlug(String(template.slug ?? '')))
+    .map((template) => ({
     id: Number(template.id),
     name: String(template.name ?? 'Template'),
     slug: String(template.slug ?? ''),
@@ -47,7 +62,7 @@ export default async function TemplatesPage() {
     is_premium: Boolean(template.is_premium),
     price: Number(template.price ?? 0),
     rating: Number(template.rating ?? 0),
-    downloads: Number(template.downloads ?? 0),
+    purchases: Number(template.purchases_count ?? 0),
   }));
 
   const purchasedTemplateIds = new Set(userPurchases.map((p) => p.template_id));
@@ -58,6 +73,7 @@ export default async function TemplatesPage() {
       SELECT id
       FROM templates
       WHERE is_premium = true
+      AND regexp_replace(lower(slug), '[-_\\s]', '', 'g') = ANY(${ALLOWED_SLUGS_SQL})
       ORDER BY price DESC, name
       LIMIT ${BUNDLE_TEMPLATE_LIMIT}
     `;
@@ -93,4 +109,3 @@ export default async function TemplatesPage() {
     </div>
   );
 }
-

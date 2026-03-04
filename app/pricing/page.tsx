@@ -155,7 +155,7 @@ export default function PricingPage() {
   <ul className="space-y-4 mb-8">
     <li className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
       <CheckCircle size={20} className="text-purple-500 flex-shrink-0" />
-      <span><strong>جميع القوالب</strong> (10 قوالب)</span>
+      <span><strong>جميع القوالب</strong> (7 قوالب)</span>
     </li>
     <li className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
       <CheckCircle size={20} className="text-purple-500 flex-shrink-0" />
@@ -213,7 +213,7 @@ export default function PricingPage() {
                   <td className="px-6 py-4">عدد القوالب</td>
                   <td className="px-6 py-4 text-center">1</td>
                   <td className="px-6 py-4 text-center bg-blue-50 dark:bg-blue-900/20">1</td>
-                  <td className="px-6 py-4 text-center">10</td>
+                  <td className="px-6 py-4 text-center">7</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4">تصدير PDF</td>
@@ -241,7 +241,7 @@ export default function PricingPage() {
           <div className="space-y-4">
             <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-md">
               <h4 className="font-bold text-lg mb-2">هل القالب ملكي بعد الشراء؟</h4>
-              <p className="text-gray-600 dark:text-gray-400">نعم، بمجرد شراء القالب يصبح ملكك مدى الحياة ويمكنك استخدامه لأي عدد تريده من السير الذاتية.</p>
+              <p className="text-gray-600 dark:text-gray-400">نعم، بمجرد شراء القالب يصبح ملكك مدى الحياة ويمكنك استخدامه لأي عدد تريده من التحميلات.</p>
             </div>
 
             <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-md">

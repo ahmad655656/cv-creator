@@ -148,14 +148,14 @@ export function NotificationBell() {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setPushState(permission === 'denied' ? 'blocked' : 'idle');
-        setPushHint('Browser permission is required for background notifications.');
+        setPushHint('يجب السماح بإشعارات المتصفح لتفعيل التنبيهات.');
         return;
       }
 
       const publicKeyRes = await fetch('/api/push/public-key', { cache: 'no-store' });
       if (!publicKeyRes.ok) {
         setPushState('idle');
-        setPushHint('Server push key is not configured.');
+        setPushHint('مفتاح الإشعارات غير مهيأ على الخادم.');
         return;
       }
 
@@ -163,7 +163,7 @@ export function NotificationBell() {
       const publicKey = String(keyData?.publicKey || '');
       if (!publicKey) {
         setPushState('idle');
-        setPushHint('Server push key is not configured.');
+        setPushHint('مفتاح الإشعارات غير مهيأ على الخادم.');
         return;
       }
 
@@ -184,15 +184,15 @@ export function NotificationBell() {
 
       if (!saveRes.ok) {
         setPushState('idle');
-        setPushHint('Failed to enable push notifications.');
+        setPushHint('تعذر تفعيل إشعارات الخلفية.');
         return;
       }
 
       setPushState('enabled');
-      setPushHint('Background notifications are enabled.');
+      setPushHint('تم تفعيل إشعارات الخلفية.');
     } catch {
       setPushState('idle');
-      setPushHint('Failed to enable push notifications.');
+      setPushHint('تعذر تفعيل إشعارات الخلفية.');
     }
   };
 
@@ -214,10 +214,10 @@ export function NotificationBell() {
         await subscription.unsubscribe();
       }
       setPushState('idle');
-      setPushHint('Background notifications are disabled.');
+      setPushHint('تم إيقاف إشعارات الخلفية.');
     } catch {
       setPushState('enabled');
-      setPushHint('Failed to disable push notifications.');
+      setPushHint('تعذر إيقاف إشعارات الخلفية.');
     }
   };
 
@@ -291,12 +291,12 @@ export function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+        className="relative rounded-lg p-2 transition hover:bg-gray-100 dark:hover:bg-gray-800"
         aria-label="Notifications"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -305,96 +305,108 @@ export function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40 bg-black/20 md:hidden" onClick={() => setOpen(false)} />
-          <div className="fixed top-16 inset-x-2 z-50 max-h-[78vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-800 overflow-hidden md:absolute md:top-auto md:inset-x-auto md:right-0 md:left-auto md:mt-2 md:w-96 md:max-w-[90vw] md:max-h-[70vh]">
-          <div className="px-4 py-3 border-b dark:border-gray-800 flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-gray-900 dark:text-white">Notifications</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{unreadItems} unread</p>
-            </div>
-            <button
-              onClick={markAllRead}
-              className="text-xs px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1"
-            >
-              <CheckCheck size={12} />
-              Mark all
-            </button>
-          </div>
 
-          <div className="px-4 py-2 border-b dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/30">
-            <p className="text-[11px] text-gray-600 dark:text-gray-300 mb-2">Background alerts</p>
-            <div className="flex items-center gap-2">
-              {pushState === 'enabled' ? (
-                <button
-                  onClick={() => void disableBackgroundNotifications()}
-                  className="text-[11px] px-2 py-1 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100"
-                >
-                  Disable
-                </button>
-              ) : (
-                <button
-                  onClick={() => void enableBackgroundNotifications()}
-                  disabled={pushState === 'loading' || pushState === 'unsupported' || pushState === 'blocked'}
-                  className="text-[11px] px-2 py-1 rounded-md bg-blue-600 text-white disabled:opacity-60"
-                >
-                  {pushState === 'loading' ? 'Enabling...' : 'Enable'}
-                </button>
-              )}
-              <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                {pushState === 'enabled' && 'On'}
-                {pushState === 'idle' && 'Off'}
-                {pushState === 'unsupported' && 'Not supported'}
-                {pushState === 'blocked' && 'Blocked by browser'}
-                {pushState === 'loading' && 'Please wait'}
-              </span>
-            </div>
-            {pushHint ? <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">{pushHint}</p> : null}
-          </div>
-
-          <div className="h-[calc(78vh-108px)] md:h-auto md:max-h-96 overflow-auto">
-            {loading && notifications.length === 0 ? (
-              <div className="p-6 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 justify-center">
-                <Loader2 size={16} className="animate-spin" />
-                Loading...
+          <div
+            dir="rtl"
+            className="fixed inset-x-2 top-16 z-50 flex max-h-[calc(100vh-5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 md:inset-x-auto md:right-3 md:left-auto md:top-[4.25rem] md:w-[430px] md:max-w-[calc(100vw-1.25rem)] md:max-h-[calc(100vh-5.25rem)]"
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+              <div className="min-w-0">
+                <p className="font-bold text-slate-900 dark:text-slate-100">الإشعارات</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{unreadItems} غير مقروءة</p>
               </div>
-            ) : notifications.length === 0 ? (
-              <div className="p-6 text-sm text-gray-500 dark:text-gray-400 text-center">No notifications yet</div>
-            ) : (
-              notifications.map((item) => (
-                <div
-                  key={item.id}
-                  className={`px-4 py-3 border-b dark:border-gray-800 ${item.is_read ? 'bg-transparent' : 'bg-blue-50/60 dark:bg-blue-900/20'}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white break-words">{item.title}</p>
-                      <p className="text-sm mt-1 text-gray-600 dark:text-gray-300 break-words leading-relaxed">{item.message}</p>
-                      {item.link ? (
-                        <Link
-                          href={item.link}
-                          onClick={() => {
-                            void markOneRead(item.id);
-                            setOpen(false);
-                          }}
-                          className="mt-2 inline-block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Open
-                        </Link>
-                      ) : null}
-                    </div>
-                    {!item.is_read && (
-                      <button
-                        onClick={() => void markOneRead(item.id)}
-                        className="text-[10px] px-2 py-1 rounded bg-blue-600 text-white"
-                      >
-                        Read
-                      </button>
-                    )}
-                  </div>
+              <button
+                onClick={markAllRead}
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <CheckCheck size={12} />
+                تحديد الكل كمقروء
+              </button>
+            </div>
+
+            <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-2.5 dark:border-slate-800 dark:bg-slate-800/30">
+              <p className="mb-2 text-[11px] font-medium text-slate-600 dark:text-slate-300">إشعارات الخلفية</p>
+              <div className="flex items-center gap-2">
+                {pushState === 'enabled' ? (
+                  <button
+                    onClick={() => void disableBackgroundNotifications()}
+                    className="rounded-md bg-slate-200 px-2 py-1 text-[11px] text-slate-800 dark:bg-slate-700 dark:text-slate-100"
+                  >
+                    إيقاف
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => void enableBackgroundNotifications()}
+                    disabled={pushState === 'loading' || pushState === 'unsupported' || pushState === 'blocked'}
+                    className="rounded-md bg-blue-600 px-2 py-1 text-[11px] text-white disabled:opacity-60"
+                  >
+                    {pushState === 'loading' ? 'جارٍ التفعيل...' : 'تفعيل'}
+                  </button>
+                )}
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {pushState === 'enabled' && 'مفعلة'}
+                  {pushState === 'idle' && 'متوقفة'}
+                  {pushState === 'unsupported' && 'غير مدعومة'}
+                  {pushState === 'blocked' && 'محجوبة من المتصفح'}
+                  {pushState === 'loading' && 'يرجى الانتظار'}
+                </span>
+              </div>
+              {pushHint ? <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{pushHint}</p> : null}
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              {loading && notifications.length === 0 ? (
+                <div className="flex items-center justify-center gap-2 p-6 text-sm text-slate-500 dark:text-slate-400">
+                  <Loader2 size={16} className="animate-spin" />
+                  جارٍ التحميل...
                 </div>
-              ))
-            )}
+              ) : notifications.length === 0 ? (
+                <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">لا توجد إشعارات حالياً</div>
+              ) : (
+                notifications.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`mb-2 rounded-xl border px-3 py-2.5 ${
+                      item.is_read
+                        ? 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+                        : 'border-blue-200 bg-blue-50/70 dark:border-blue-800/60 dark:bg-blue-900/20'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-semibold text-slate-900 dark:text-slate-100">{item.title}</p>
+                        <p className="mt-1 break-words text-sm leading-relaxed text-slate-600 dark:text-slate-300">{item.message}</p>
+                        <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                          {new Date(item.created_at).toLocaleString('ar-EG')}
+                        </p>
+                        {item.link ? (
+                          <Link
+                            href={item.link}
+                            onClick={() => {
+                              void markOneRead(item.id);
+                              setOpen(false);
+                            }}
+                            className="mt-2 inline-block text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            فتح
+                          </Link>
+                        ) : null}
+                      </div>
+
+                      {!item.is_read && (
+                        <button
+                          onClick={() => void markOneRead(item.id)}
+                          className="shrink-0 rounded-md bg-blue-600 px-2 py-1 text-[10px] font-medium text-white"
+                        >
+                          تمت القراءة
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
         </>
       )}
     </div>

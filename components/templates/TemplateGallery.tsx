@@ -1,121 +1,157 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Image as ImageIcon, ArrowUpRight } from 'lucide-react';
 import {
-  ExecutiveProTemplate,
-  TechMasterProTemplate,
-  AcademicEliteProTemplate,
-  MedicalProTemplate,
-  FinanceEliteTemplate,
-  LegalExpertTemplate,
-  MarketingGuruTemplate,
-  ArchitectProTemplate,
-  HrProTemplate,
+  MinimalNordicTemplate,
   SalesStarTemplate,
-  GlobalEdgeTemplate,
-  AuroraPrimeTemplate
+  RichardPremiumTemplate,
+  AndreEmaasTemplate,
+  ProductLeadTemplate,
+  JulianaSilvaTemplate,
+  AlidaPlanetTemplate
 } from '@/components/templates/premium/PremiumTemplates';
 import { getProfessionalTemplateBySlug, mapProfessionalToEditorConfig } from '@/lib/templates/professional-templates';
-import { TEMPLATE_PREVIEW_DATA } from '@/components/templates/premium/previewData';
+import {
+  TEMPLATE_PREVIEW_DATA,
+  MINIMAL_NORDIC_PREVIEW_DATA,
+  SALES_STAR_PREVIEW_DATA,
+  RICHARD_PREVIEW_DATA,
+  ANDREEMAAS_PREVIEW_DATA,
+  PRODUCT_LEAD_PREVIEW_DATA,
+  JULIANA_SILVA_PREVIEW_DATA,
+  ALIDA_PLANET_PREVIEW_DATA
+} from '@/components/templates/premium/previewData';
 import type { TemplateConfig } from '@/lib/types/template-config';
+import { isAllowedPremiumSlug, normalizeTemplateSlug } from '@/lib/templates/allowedPremiumSlugs';
 
 interface TemplateItem {
   id: number;
   name: string;
   slug: string;
   is_premium: boolean;
+  thumbnail?: string;
 }
 
 const PREVIEW_WIDTH = 840;
 const PREVIEW_HEIGHT = 1188;
+const MINIMAL_NORDIC_CARD_IMAGE = '/Minimal%20Nordic.jpg';
+const SALES_STAR_CARD_IMAGE = '/SalesStar.jpg';
+const PRODUCT_LEAD_CARD_IMAGE = '/ProductLead.png';
+const RICHARD_CARD_IMAGE = '/richard.jpg';
+const ANDREEMAAS_CARD_IMAGE = '/andree.png';
+const ALIDA_PLANET_CARD_IMAGE = '/emmajames.jpg';
 
 const DEFAULT_PREVIEW_CONFIG: TemplateConfig = {
-  primaryColor: '#2563eb',
-  secondaryColor: '#4f46e5',
+  pageFormat: 'A4',
+  primaryColor: '#1e3a8a',
+  secondaryColor: '#334155',
   headingColor: '#0f172a',
-  textColor: '#334155',
+  textColor: '#1f2937',
   mutedTextColor: '#64748b',
   headerTextColor: '#ffffff',
   pageColor: '#ffffff',
   background: 'light',
-  fontFamily: 'Cairo',
-  headingFontFamily: 'Cairo',
+  fontFamily: '"Calibri", "Segoe UI", Arial, sans-serif',
+  headingFontFamily: '"Cambria", "Georgia", serif',
   fontSize: 'medium',
-  lineHeight: 1.5,
-  nameSize: 40,
-  titleSize: 22,
-  sectionTitleSize: 22,
-  bodySize: 14,
-  sectionSpacing: 24,
-  blockSpacing: 14,
-  pagePadding: 32,
-  pageWidth: 860,
+  lineHeight: 1.3,
+  nameSize: 34,
+  titleSize: 17,
+  sectionTitleSize: 15,
+  bodySize: 11,
+  sectionSpacing: 16,
+  blockSpacing: 8,
+  pagePadding: 64,
+  pageWidth: 794,
   margins: 'normal',
   showBorders: true,
   borderWidth: 1,
-  showShadows: true,
+  showShadows: false,
   roundedCorners: true,
-  radiusSize: 16,
+  radiusSize: 10,
   presetLocked: false
 };
 
-function TemplateCardLivePreview({ slug }: { slug: string }) {
+function TemplateCardLivePreview({ slug, staticImageSrc }: { slug: string; staticImageSrc?: string }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.35);
 
-  const normalizedSlug = slug.toLowerCase().replace(/[-_\s]/g, '');
+  const normalizedSlug = normalizeTemplateSlug(slug);
   const professionalTemplate = getProfessionalTemplateBySlug(slug);
   const config: TemplateConfig | undefined = professionalTemplate
     ? { ...DEFAULT_PREVIEW_CONFIG, ...mapProfessionalToEditorConfig(professionalTemplate) }
     : undefined;
-  const props = { data: TEMPLATE_PREVIEW_DATA, config };
+  const props = {
+    data:
+      normalizedSlug === 'minimalnordic'
+        ? MINIMAL_NORDIC_PREVIEW_DATA
+        : normalizedSlug === 'salesstar'
+          ? SALES_STAR_PREVIEW_DATA
+          : normalizedSlug === 'richard'
+            ? RICHARD_PREVIEW_DATA
+          : normalizedSlug === 'andreemas'
+            ? ANDREEMAAS_PREVIEW_DATA
+          : normalizedSlug === 'productlead'
+            ? PRODUCT_LEAD_PREVIEW_DATA
+            : normalizedSlug === 'julianasilva'
+              ? JULIANA_SILVA_PREVIEW_DATA
+              : normalizedSlug === 'alidaplanet'
+                ? ALIDA_PLANET_PREVIEW_DATA
+                : TEMPLATE_PREVIEW_DATA,
+    config
+  };
 
   useEffect(() => {
     const element = frameRef.current;
     if (!element) return;
 
     const updateScale = () => {
-      const width = Math.max(element.clientWidth - 14, 0);
-      const height = Math.max(element.clientHeight - 14, 0);
+      const width = Math.max(element.clientWidth, 0);
+      const height = Math.max(element.clientHeight, 0);
       const nextScale = Math.min(width / PREVIEW_WIDTH, height / PREVIEW_HEIGHT);
       setScale(Number.isFinite(nextScale) ? Math.max(0.2, nextScale) : 0.35);
     };
 
     updateScale();
-
     const observer = new ResizeObserver(updateScale);
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
 
+  if (staticImageSrc) {
+    return (
+      <div dir="ltr" className="h-full w-full bg-[#f5f6f7] p-[5%]">
+        <div className="h-full w-full flex items-center justify-center rounded-[16px] bg-[#f5f6f7]">
+          <img
+            src={staticImageSrc}
+            alt={`${slug} template preview`}
+            className="relative z-10 opacity-100 [filter:none] [backdrop-filter:none] w-full h-full rounded-[14px] shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+            style={{ objectFit: 'contain' }}
+            draggable={false}
+          />
+        </div>
+      </div>
+    );
+  }
+
   const node = (() => {
     switch (normalizedSlug) {
-      case 'executive':
-        return <ExecutiveProTemplate {...props} />;
-      case 'techmaster':
-        return <TechMasterProTemplate {...props} />;
-      case 'academicelite':
-        return <AcademicEliteProTemplate {...props} />;
-      case 'medicalpro':
-        return <MedicalProTemplate {...props} />;
-      case 'financeelite':
-        return <FinanceEliteTemplate {...props} />;
-      case 'legalexpert':
-        return <LegalExpertTemplate {...props} />;
-      case 'marketingguru':
-        return <MarketingGuruTemplate {...props} />;
-      case 'architectpro':
-        return <ArchitectProTemplate {...props} />;
-      case 'hrpro':
-        return <HrProTemplate {...props} />;
+      case 'minimalnordic':
+        return <MinimalNordicTemplate {...props} />;
       case 'salesstar':
         return <SalesStarTemplate {...props} />;
-      case 'globaledge':
-        return <GlobalEdgeTemplate {...props} />;
-      case 'auroraprime':
-        return <AuroraPrimeTemplate {...props} />;
+      case 'richard':
+        return <RichardPremiumTemplate {...props} />;
+      case 'andreemas':
+        return <AndreEmaasTemplate {...props} />;
+      case 'productlead':
+        return <ProductLeadTemplate {...props} />;
+      case 'julianasilva':
+        return <JulianaSilvaTemplate {...props} />;
+      case 'alidaplanet':
+        return <AlidaPlanetTemplate {...props} />;
       default:
         return null;
     }
@@ -123,23 +159,18 @@ function TemplateCardLivePreview({ slug }: { slug: string }) {
 
   if (!node) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+      <div className="w-full h-full flex items-center justify-center bg-[#f5f6f7]">
         <ImageIcon size={40} className="text-slate-400" />
       </div>
     );
   }
 
   return (
-    <div
-      ref={frameRef}
-      dir="ltr"
-      className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_top,#f8fafc_0%,#dbeafe_45%,#cbd5e1_100%)] dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900"
-    >
-      <div className="absolute inset-[8px] rounded-xl border border-slate-300/80 dark:border-slate-700/80 shadow-inner bg-white/70 dark:bg-slate-900/40" />
-      <div className="absolute inset-[8px] overflow-hidden rounded-xl">
+    <div dir="ltr" className="h-full w-full bg-[#f5f6f7] p-[5%]">
+      <div ref={frameRef} className="h-full w-full flex items-center justify-center rounded-[16px] bg-[#f5f6f7]">
         <div
-          className="absolute left-1/2 top-1 origin-top pointer-events-none"
-          style={{ transform: `translateX(-50%) scale(${scale})`, transformOrigin: 'top center' }}
+          className="pointer-events-none relative z-10 opacity-100 [filter:none] [backdrop-filter:none] rounded-[14px] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+          style={{ transform: `scale(${scale})`, transformOrigin: 'center center', width: `${PREVIEW_WIDTH}px`, minHeight: `${PREVIEW_HEIGHT}px` }}
         >
           <div style={{ width: PREVIEW_WIDTH, minHeight: PREVIEW_HEIGHT, direction: 'ltr' }}>{node}</div>
         </div>
@@ -150,7 +181,9 @@ function TemplateCardLivePreview({ slug }: { slug: string }) {
 
 export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
   const router = useRouter();
-  const premiumTemplates = templates.filter((template) => template.is_premium);
+  const premiumTemplates = templates.filter((template) =>
+    template.is_premium && isAllowedPremiumSlug(template.slug || '')
+  );
 
   const handleTemplateClick = (template: TemplateItem) => {
     if (!template.slug) return;
@@ -158,27 +191,39 @@ export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
       {premiumTemplates.map((template) => (
         <button
           type="button"
           key={template.id}
-          className="text-right bg-white dark:bg-gray-900 rounded-2xl shadow-[0_15px_40px_rgba(15,23,42,0.12)] overflow-hidden hover:shadow-[0_22px_50px_rgba(15,23,42,0.18)] transition cursor-pointer group border border-slate-200 dark:border-slate-800"
+          className="text-right bg-white dark:bg-gray-900 rounded-xl hover:shadow-[0_8px_22px_rgba(15,23,42,0.16)] transition duration-300 cursor-pointer group border border-slate-200 dark:border-slate-800 transform-gpu hover:scale-[1.03]"
           onClick={() => handleTemplateClick(template)}
         >
-          <div className="aspect-[210/297] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 relative overflow-hidden">
-            <TemplateCardLivePreview slug={template.slug} />
-            <span className="absolute top-3 right-3 rounded-full bg-amber-500 text-white text-[11px] px-2.5 py-1 font-bold shadow">
-              Premium
-            </span>
+          <div className="aspect-[210/297] bg-[#f5f6f7]">
+            <TemplateCardLivePreview
+              slug={template.slug}
+              staticImageSrc={(() => {
+                const normalizedSlug = normalizeTemplateSlug(template.slug || '');
+                if (normalizedSlug === 'minimalnordic') return MINIMAL_NORDIC_CARD_IMAGE;
+                if (normalizedSlug === 'salesstar') return SALES_STAR_CARD_IMAGE;
+                if (normalizedSlug === 'richard') return RICHARD_CARD_IMAGE;
+                if (normalizedSlug === 'andreemas') return ANDREEMAAS_CARD_IMAGE;
+                if (normalizedSlug === 'productlead') return PRODUCT_LEAD_CARD_IMAGE;
+                if (normalizedSlug === 'alidaplanet') return ALIDA_PLANET_CARD_IMAGE;
+                return undefined;
+              })()}
+            />
           </div>
 
-          <div className="p-4 flex items-center justify-between gap-3">
+          <div className="p-3 flex items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">{template.name}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">معاينة متجاوبة وواضحة</p>
+              <h3 className="font-semibold text-[13px] text-slate-900 dark:text-white leading-tight">{template.name}</h3>
+              <div className="mt-1 flex items-center gap-2">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">A4 Preview</p>
+                <span className="rounded-full bg-amber-500 text-white text-[10px] px-2 py-0.5 font-bold shadow-sm">Premium</span>
+              </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 text-sm font-semibold">
+            <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
               فتح
               <ArrowUpRight size={16} />
             </span>
@@ -188,4 +233,3 @@ export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
     </div>
   );
 }
-

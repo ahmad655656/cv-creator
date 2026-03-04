@@ -21,7 +21,8 @@ type SeedTemplate = {
 };
 
 const toSeedTemplates = (): SeedTemplate[] =>
-  Object.entries(PROFESSIONAL_TEMPLATES).map(([slug, template]) => {
+  {
+    const baseTemplates = Object.entries(PROFESSIONAL_TEMPLATES).map(([slug, template]) => {
     const pageTier = template.pageTier || 'one-page';
     const resolvedPrice = pageTier === 'two-page' ? 20000 : 10000;
     const editorConfig = mapProfessionalToEditorConfig(template) as Record<string, unknown>;
@@ -43,8 +44,43 @@ const toSeedTemplates = (): SeedTemplate[] =>
     };
   });
 
+    const salesStar = baseTemplates.find((template) => template.slug.toLowerCase().replace(/[-_\s]/g, '') === 'salesstar');
+    const richardTemplate: SeedTemplate | null = salesStar
+      ? {
+          ...salesStar,
+          name: 'Richard Premium',
+          slug: 'richard',
+          description: 'Richard Premium - Professional CV template',
+          thumbnail: '/richard.jpg',
+          config: {
+            ...salesStar.config,
+            sourceTemplate: 'salesstar',
+            customCardImage: '/richard.jpg'
+          }
+        }
+      : null;
+
+    const andreEmaasTemplate: SeedTemplate | null = salesStar
+      ? {
+          ...salesStar,
+          name: 'Andre Emaas Premium',
+          slug: 'andreemas',
+          description: 'Andre Emaas Premium - Professional CV template',
+          thumbnail: '/andreemas.jpg',
+          config: {
+            ...salesStar.config,
+            sourceTemplate: 'salesstar',
+            customCardImage: '/andreemas.jpg'
+          }
+        }
+      : null;
+
+    return [...baseTemplates, richardTemplate, andreEmaasTemplate].filter(Boolean) as SeedTemplate[];
+  };
+
 async function seedPremiumTemplates() {
   const templates = toSeedTemplates();
+  const allowedNormalizedSlugs = templates.map((template) => template.slug.toLowerCase().replace(/[-_\s]/g, ''));
 
   for (const template of templates) {
     await sql`
@@ -83,6 +119,13 @@ async function seedPremiumTemplates() {
         config = EXCLUDED.config
     `;
   }
+
+  await sql`
+    DELETE FROM templates
+    WHERE is_premium = true
+      AND slug <> '__bundle__'
+      AND regexp_replace(lower(slug), '[-_\\s]', '', 'g') <> ALL(${allowedNormalizedSlugs})
+  `;
 
   console.log(`Seeded premium templates: ${templates.length}`);
   console.log(templates.map((template) => template.slug).join(', '));

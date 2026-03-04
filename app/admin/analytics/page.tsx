@@ -2,6 +2,9 @@
 import { authOptions } from '@/lib/auth/auth';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
+import type { ReactNode } from 'react';
+import { AdminPageShell } from '@/components/admin/AdminPageShell';
+import { CreditCard, DollarSign, FileText, Users } from 'lucide-react';
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -16,28 +19,39 @@ export default async function AdminAnalyticsPage() {
     sql`SELECT COUNT(*) as count FROM cvs`
   ]);
 
+  const usersCount = Number(users[0]?.count || 0);
+  const paymentsCount = Number(payments[0]?.count || 0);
+  const cvsCount = Number(cvs[0]?.count || 0);
+  const totalRevenue = Number(payments[0]?.total || 0);
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="container mx-auto px-4 py-8">
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8">
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">التحليلات</h1>
-          <div className="mt-6 grid sm:grid-cols-3 gap-4">
-            <Card title="المستخدمون" value={Number(users[0]?.count || 0)} />
-            <Card title="المدفوعات الناجحة" value={Number(payments[0]?.count || 0)} />
-            <Card title="السير الذاتية" value={Number(cvs[0]?.count || 0)} />
-          </div>
-          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">إجمالي الإيراد: {Number(payments[0]?.total || 0).toLocaleString()} ل.س</p>
-        </div>
-      </div>
-    </div>
+    <AdminPageShell
+      title="التحليلات"
+      description="نظرة سريعة على الأداء العام للموقع والمدفوعات والمستخدمين."
+      currentPath="/admin/analytics"
+    >
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Metric title="المستخدمون" value={usersCount} icon={<Users size={18} />} />
+        <Metric title="المدفوعات الناجحة" value={paymentsCount} icon={<CreditCard size={18} />} />
+        <Metric title="السير الذاتية" value={cvsCount} icon={<FileText size={18} />} />
+        <Metric title="إجمالي الإيراد" value={`${totalRevenue.toLocaleString('ar-SY')} ل.س`} icon={<DollarSign size={18} />} />
+      </section>
+    </AdminPageShell>
   );
 }
 
-function Card({ title, value }: { title: string; value: number }) {
+function Metric({ title, value, icon }: { title: string; value: string | number; icon: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-      <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
-      <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">{value}</p>
-    </div>
+    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
+          <p className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-slate-100">{value}</p>
+        </div>
+        <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 flex items-center justify-center">{icon}</div>
+      </div>
+    </article>
   );
 }
+
+

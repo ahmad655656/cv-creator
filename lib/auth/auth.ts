@@ -66,7 +66,7 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       console.log('🔑 JWT callback - user received:', user);
       console.log('🔑 JWT callback - token before:', token);
       
@@ -80,6 +80,18 @@ export const authOptions: NextAuthOptions = {
       }
       
       console.log('🔑 JWT callback - token after:', token);
+      if (trigger === 'update') {
+        // NextAuth update() may send either { name, email } or { user: { name, email } }
+        const nextName =
+          (session as { name?: string } | undefined)?.name ||
+          (session as { user?: { name?: string } } | undefined)?.user?.name;
+        const nextEmail =
+          (session as { email?: string } | undefined)?.email ||
+          (session as { user?: { email?: string } } | undefined)?.user?.email;
+
+        if (nextName) token.name = nextName;
+        if (nextEmail) token.email = nextEmail;
+      }
       return token;
     },
     async session({ session, token }) {
@@ -102,3 +114,5 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+

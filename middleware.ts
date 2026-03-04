@@ -11,6 +11,7 @@ const publicPaths = [
   '/templates',
   '/pricing',
   '/study-questions',
+  '/logo-studio',
   '/test-db',
   '/test',
   '/api/auth',

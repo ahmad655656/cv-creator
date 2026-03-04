@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Contact Form Email Delivery
+
+The contact form sends messages from `app/contact/page.tsx` to `/api/contact`.
+To receive messages at `haedarahasan69@gmail.com`, add these variables to your `.env.local`:
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=YOUR_SMTP_EMAIL@gmail.com
+SMTP_PASS=YOUR_SMTP_APP_PASSWORD
+SMTP_SECURE=false
+
+CONTACT_FROM_EMAIL=YOUR_SMTP_EMAIL@gmail.com
+CONTACT_RECEIVER_EMAIL=haedarahasan69@gmail.com
+```
+
+Notes:
+- If you use Gmail, create an App Password and use it as `SMTP_PASS`.
+- `CONTACT_RECEIVER_EMAIL` is the destination inbox for all contact form messages.
