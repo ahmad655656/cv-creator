@@ -294,7 +294,7 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {filteredTemplates.map((template) => {
           const isPurchased = purchasedTemplates.has(template.id);
           const isDownloading = downloadingTemplateId === template.id;
@@ -302,7 +302,7 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
           return (
             <article
               key={template.id}
-              className="group bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-[0_4px_16px_rgba(15,23,42,0.08)] hover:shadow-[0_10px_26px_rgba(15,23,42,0.14)] transition-all duration-300 overflow-hidden"
+              className="group h-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800/90 shadow-[0_4px_16px_rgba(15,23,42,0.08)] hover:shadow-[0_10px_26px_rgba(15,23,42,0.14)] transition-all duration-300 overflow-hidden flex flex-col"
             >
               <div className="relative aspect-[210/297] bg-[#f3f5f7] dark:bg-slate-800 overflow-hidden">
                 <TemplateCardLivePreview
@@ -334,9 +334,9 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
                 )}
               </div>
 
-              <div className="p-3.5">
+              <div className="p-3 sm:p-3.5 flex flex-col flex-1">
                 <div className="flex justify-between items-start mb-1.5 gap-2">
-                  <h3 className="font-semibold text-[13px] sm:text-[14px] text-slate-900 dark:text-slate-100 leading-tight">{template.name}</h3>
+                  <h3 className="font-semibold text-[13px] sm:text-[14px] text-slate-900 dark:text-slate-100 leading-tight line-clamp-2 min-h-[2.3rem]">{template.name}</h3>
                   <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-full shrink-0 border border-amber-100 dark:border-amber-900/40">
                     <Star size={11} className="text-amber-500 fill-amber-500" />
                     <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
@@ -345,9 +345,9 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
                   </div>
                 </div>
 
-                <p className="text-slate-500 dark:text-slate-400 text-[11px] mb-2.5 line-clamp-2">{template.description}</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] mb-2.5 line-clamp-2 min-h-[2rem]">{template.description}</p>
 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2 flex-wrap">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
                     {template.category}
                   </span>
@@ -357,13 +357,13 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-1.5">
+                <div className="mt-3 grid grid-cols-2 gap-1.5 mt-auto">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setPreviewTemplate(template);
                     }}
-                    className="w-full py-1.5 rounded-lg font-medium transition flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px]"
+                    className="w-full py-1.5 rounded-lg font-medium transition flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-[10px] sm:text-[11px]"
                   >
                     <Eye size={14} />
                     معاينة
@@ -379,7 +379,7 @@ export function TemplateShowcase({ templates, purchasedTemplates, userId }: Temp
                       }
                     }}
                     disabled={isDownloading}
-                    className={`w-full py-1.5 rounded-lg font-medium transition flex items-center justify-center gap-1.5 text-[11px] ${
+                    className={`w-full py-1.5 rounded-lg font-medium transition flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] ${
                       isPurchased
                         ? 'bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-60 disabled:cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-700'

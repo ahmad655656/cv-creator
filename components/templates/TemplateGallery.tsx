@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -91,15 +91,15 @@ function TemplateCardLivePreview({ slug, staticImageSrc }: { slug: string; stati
           ? SALES_STAR_PREVIEW_DATA
           : normalizedSlug === 'richard'
             ? RICHARD_PREVIEW_DATA
-          : normalizedSlug === 'andreemas'
-            ? ANDREEMAAS_PREVIEW_DATA
-          : normalizedSlug === 'productlead'
-            ? PRODUCT_LEAD_PREVIEW_DATA
-            : normalizedSlug === 'julianasilva'
-              ? JULIANA_SILVA_PREVIEW_DATA
-              : normalizedSlug === 'alidaplanet'
-                ? ALIDA_PLANET_PREVIEW_DATA
-                : TEMPLATE_PREVIEW_DATA,
+            : normalizedSlug === 'andreemas'
+              ? ANDREEMAAS_PREVIEW_DATA
+              : normalizedSlug === 'productlead'
+                ? PRODUCT_LEAD_PREVIEW_DATA
+                : normalizedSlug === 'julianasilva'
+                  ? JULIANA_SILVA_PREVIEW_DATA
+                  : normalizedSlug === 'alidaplanet'
+                    ? ALIDA_PLANET_PREVIEW_DATA
+                    : TEMPLATE_PREVIEW_DATA,
     config
   };
 
@@ -191,12 +191,12 @@ export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
       {premiumTemplates.map((template) => (
         <button
           type="button"
           key={template.id}
-          className="text-right bg-white dark:bg-gray-900 rounded-xl hover:shadow-[0_8px_22px_rgba(15,23,42,0.16)] transition duration-300 cursor-pointer group border border-slate-200 dark:border-slate-800 transform-gpu hover:scale-[1.03]"
+          className="h-full text-right bg-white dark:bg-gray-900 rounded-2xl hover:shadow-[0_8px_22px_rgba(15,23,42,0.16)] transition duration-300 cursor-pointer group border border-slate-200 dark:border-slate-800 transform-gpu hover:scale-[1.02] overflow-hidden flex flex-col"
           onClick={() => handleTemplateClick(template)}
         >
           <div className="aspect-[210/297] bg-[#f5f6f7]">
@@ -215,15 +215,19 @@ export function TemplateGallery({ templates }: { templates: TemplateItem[] }) {
             />
           </div>
 
-          <div className="p-3 flex items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold text-[13px] text-slate-900 dark:text-white leading-tight">{template.name}</h3>
+          <div className="p-3 sm:p-3.5 flex items-center justify-between gap-3 mt-auto">
+            <div className="min-w-0">
+              <h3 className="font-semibold text-[13px] sm:text-[14px] text-slate-900 dark:text-white leading-tight line-clamp-2">
+                {template.name}
+              </h3>
               <div className="mt-1 flex items-center gap-2">
                 <p className="text-[10px] text-slate-500 dark:text-slate-400">A4 Preview</p>
-                <span className="rounded-full bg-amber-500 text-white text-[10px] px-2 py-0.5 font-bold shadow-sm">Premium</span>
+                <span className="rounded-full bg-amber-500 text-white text-[10px] px-2 py-0.5 font-bold shadow-sm">
+                  Premium
+                </span>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 text-[11px] font-semibold shrink-0">
               فتح
               <ArrowUpRight size={16} />
             </span>
