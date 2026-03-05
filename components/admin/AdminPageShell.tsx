@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { BarChart3, CreditCard, FileText, LayoutTemplate, Settings, Users } from 'lucide-react';
 
 const adminLinks = [
-  { href: '/dashboard', label: 'لوحة الإدارة', icon: BarChart3 },
+  { href: '/admin', label: 'لوحة الإدارة', icon: BarChart3 },
   { href: '/admin/payments', label: 'المدفوعات', icon: CreditCard },
   { href: '/admin/users', label: 'المستخدمون', icon: Users },
   { href: '/admin/templates', label: 'القوالب', icon: LayoutTemplate },
@@ -62,4 +62,3 @@ export function AdminPageShell({ title, description, currentPath, actions, child
     </div>
   );
 }
-

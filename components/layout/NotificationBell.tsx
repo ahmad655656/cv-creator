@@ -231,7 +231,7 @@ export function NotificationBell() {
       const nextUnread = Number(data?.unreadCount || 0);
       setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
       setUnreadCount(nextUnread);
-      if (prevUnreadRef.current > 0 && nextUnread > prevUnreadRef.current) {
+      if (nextUnread > prevUnreadRef.current) {
         playNotificationTone(audioRef, canPlaySoundRef);
       }
       prevUnreadRef.current = nextUnread;
@@ -246,7 +246,7 @@ export function NotificationBell() {
     void fetchNotifications();
     const id = window.setInterval(() => {
       void fetchNotifications();
-    }, 20000);
+    }, 5000);
     return () => window.clearInterval(id);
   }, [fetchNotifications]);
 

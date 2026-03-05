@@ -1,5 +1,6 @@
-﻿import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
+import { isAdminRole } from '@/lib/auth/isAdminRole';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
@@ -8,7 +9,7 @@ import { AdminPageShell } from '@/components/admin/AdminPageShell';
 export default async function AdminTemplatesPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
-  if (session.user.role !== 'admin') redirect('/dashboard');
+  if (!isAdminRole(session.user?.role)) redirect('/dashboard');
 
   return (
     <AdminPageShell
@@ -33,4 +34,3 @@ export default async function AdminTemplatesPage() {
     </AdminPageShell>
   );
 }
-

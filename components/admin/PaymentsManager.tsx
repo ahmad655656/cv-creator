@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Clock3, Eye, Package, Search, XCircle } from 'lucide-react';
 
@@ -26,14 +26,30 @@ interface PaymentsManagerProps {
   payments: Payment[];
 }
 
-export function PaymentsManager({ payments }: PaymentsManagerProps) {
+const dateFormatter = new Intl.DateTimeFormat('ar-SY-u-nu-arab', {
+  timeZone: 'Asia/Damascus',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: true,
+});
+
+export function PaymentsManager({ payments: initialPayments }: PaymentsManagerProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [processingId, setProcessingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setPayments(initialPayments);
+  }, [initialPayments]);
 
   const filteredPayments = useMemo(() => {
     return payments.filter((payment) => {
@@ -51,6 +67,33 @@ export function PaymentsManager({ payments }: PaymentsManagerProps) {
     });
   }, [payments, search, statusFilter, typeFilter]);
 
+  const applyPaymentUpdate = (
+    paymentId: number,
+    nextStatus: Payment['status'],
+    notes: string | null
+  ) => {
+    setPayments((prev) =>
+      prev.map((payment) =>
+        payment.id === paymentId
+          ? {
+              ...payment,
+              status: nextStatus,
+              admin_notes: notes,
+            }
+          : payment
+      )
+    );
+    setSelectedPayment((prev) =>
+      prev && prev.id === paymentId
+        ? {
+            ...prev,
+            status: nextStatus,
+            admin_notes: notes,
+          }
+        : prev
+    );
+  };
+
   const handleApprove = async (paymentId: number) => {
     if (!confirm('تأكيد الموافقة على هذه الدفعة؟')) return;
 
@@ -66,9 +109,12 @@ export function PaymentsManager({ payments }: PaymentsManagerProps) {
       });
 
       if (response.ok) {
-        router.refresh();
+        applyPaymentUpdate(paymentId, 'approved', adminNotes || null);
         setSelectedPayment(null);
         setAdminNotes('');
+        startTransition(() => {
+          router.refresh();
+        });
       } else {
         alert('حدث خطأ أثناء الموافقة على الدفعة.');
       }
@@ -96,9 +142,12 @@ export function PaymentsManager({ payments }: PaymentsManagerProps) {
       });
 
       if (response.ok) {
-        router.refresh();
+        applyPaymentUpdate(paymentId, 'rejected', reason);
         setSelectedPayment(null);
         setAdminNotes('');
+        startTransition(() => {
+          router.refresh();
+        });
       } else {
         alert('حدث خطأ أثناء رفض الدفعة.');
       }
@@ -113,13 +162,15 @@ export function PaymentsManager({ payments }: PaymentsManagerProps) {
   const formatCurrency = (amount: number) => `${amount.toLocaleString('ar-SY')} ل.س`;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ar-SY', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const parts = dateFormatter.formatToParts(new Date(dateString));
+    const partMap = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    const day = (partMap.day || '').replace(/\u200f/g, '');
+    const month = (partMap.month || '').replace(/\u200f/g, '');
+    const year = (partMap.year || '').replace(/\u200f/g, '');
+    const hour = (partMap.hour || '').replace(/\u200f/g, '');
+    const minute = (partMap.minute || '').replace(/\u200f/g, '');
+    const dayPeriod = (partMap.dayPeriod || '').replace(/\u200f/g, '');
+    return `${day}/${month}/${year} ${hour}:${minute} ${dayPeriod}`.trim();
   };
 
   const statusBadge = (status: Payment['status']) => {

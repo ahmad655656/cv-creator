@@ -1,12 +1,13 @@
-﻿import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
+import { isAdminRole } from '@/lib/auth/isAdminRole';
 import { redirect } from 'next/navigation';
 import { AdminPageShell } from '@/components/admin/AdminPageShell';
 
 export default async function AdminNewTemplatePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
-  if (session.user.role !== 'admin') redirect('/dashboard');
+  if (!isAdminRole(session.user?.role)) redirect('/dashboard');
 
   return (
     <AdminPageShell
@@ -20,4 +21,3 @@ export default async function AdminNewTemplatePage() {
     </AdminPageShell>
   );
 }
-

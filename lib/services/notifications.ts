@@ -38,7 +38,8 @@ export async function notifyUser(recipientUserId: number, payload: NotificationP
     RETURNING id
   `;
 
-  await sendPushToUser(recipientUserId, {
+  // Keep API handlers fast: persist in-app notification first, then push in background.
+  void sendPushToUser(recipientUserId, {
     title: payload.title,
     message: payload.message,
     link: payload.link || '/dashboard',
@@ -55,9 +56,7 @@ export async function notifyRole(role: string, payload: NotificationPayload) {
     SELECT id FROM users WHERE role = ${role}
   `;
 
-  for (const user of users) {
-    await notifyUser(Number(user.id), payload);
-  }
+  await Promise.all(users.map((user) => notifyUser(Number(user.id), payload)));
 }
 
 export async function notifyAdmins(payload: NotificationPayload) {

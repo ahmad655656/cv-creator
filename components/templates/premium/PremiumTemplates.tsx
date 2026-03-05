@@ -1756,7 +1756,11 @@ export function AndreEmaasTemplate({ data, sectionVisibility, sectionStyles, sec
   const line1 = parts.slice(0, Math.ceil(parts.length / 2)).join(' ') || 'ANDRÉ';
   const line2 = parts.slice(Math.ceil(parts.length / 2)).join(' ') || 'MAAS';
   const title = (data.personalInfo.jobTitle || 'ROBOTICA-INGENIEUR').toUpperCase();
-  const profileImage = data.personalInfo.profileImage || '/ander.png';
+  const normalizedProfileImage =
+    data.personalInfo.profileImage === '/ander.png'
+      ? '/andree.png'
+      : data.personalInfo.profileImage;
+  const profileImage = normalizedProfileImage || '/andree.png';
   const about = data.personalInfo.summary || 'Ik ben een robotica-ingenieur met kennis in computerwetenschap en elektrotechniek. Ik heb zowel in academische als zakelijke omgevingen gewerkt.';
   
   const skills = (data.skills.length ? data.skills : [
@@ -2798,12 +2802,12 @@ export function JulianaSilvaTemplate({ data, config, styleOverrides, sectionVisi
   return (
   <SectionStylesContext.Provider value={sectionStyles || {}}>
     <SectionOrderContext.Provider value={sectionOrder || []}>
-      <div className="w-full min-h-screen flex justify-center bg-[#e5e5e5] py-10">
+      <div className="w-full bg-white">
         <div
           className=""
           style={{
-            width: "210mm",
-            height: "297mm",
+            width: "100%",
+            minHeight: "297mm",
             fontFamily: '"Nunito Sans", "Segoe UI", Arial, sans-serif'
           }}
           dir="ltr"

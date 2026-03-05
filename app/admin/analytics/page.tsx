@@ -1,5 +1,6 @@
-﻿import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
+import { isAdminRole } from '@/lib/auth/isAdminRole';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import type { ReactNode } from 'react';
@@ -11,7 +12,7 @@ const sql = neon(process.env.DATABASE_URL!);
 export default async function AdminAnalyticsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
-  if (session.user.role !== 'admin') redirect('/dashboard');
+  if (!isAdminRole(session.user?.role)) redirect('/dashboard');
 
   const [users, payments, cvs] = await Promise.all([
     sql`SELECT COUNT(*) as count FROM users`,
@@ -53,5 +54,3 @@ function Metric({ title, value, icon }: { title: string; value: string | number;
     </article>
   );
 }
-
-

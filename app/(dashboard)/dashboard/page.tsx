@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
+import { isAdminRole } from '@/lib/auth/isAdminRole';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import Link from 'next/link';
@@ -17,7 +18,7 @@ export default async function DashboardPage() {
   if (!session) redirect('/login');
 
   const userRole = session.user?.role || 'user';
-  const isAdmin = userRole === 'admin';
+  const isAdmin = isAdminRole(userRole);
 
   if (isAdmin) {
     const templateScopeCondition = sql`regexp_replace(lower(t.slug), '[-_\\s]', '', 'g') = ANY(${ALLOWED_SLUGS_SQL})`;
@@ -251,3 +252,5 @@ function StatCard({ title, value, icon }: { title: string; value: number | strin
     </div>
   );
 }
+
+

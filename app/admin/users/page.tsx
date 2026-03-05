@@ -1,5 +1,6 @@
-﻿import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
+import { isAdminRole } from '@/lib/auth/isAdminRole';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import { AdminPageShell } from '@/components/admin/AdminPageShell';
@@ -9,7 +10,7 @@ const sql = neon(process.env.DATABASE_URL!);
 export default async function AdminUsersPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
-  if (session.user.role !== 'admin') redirect('/dashboard');
+  if (!isAdminRole(session.user?.role)) redirect('/dashboard');
 
   const users = await sql`
     SELECT id, name, email, role, created_at
@@ -55,4 +56,3 @@ export default async function AdminUsersPage() {
     </AdminPageShell>
   );
 }
-

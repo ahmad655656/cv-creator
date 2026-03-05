@@ -172,7 +172,7 @@ export const ANDREEMAAS_PREVIEW_DATA: CVData = {
     phone: '0275-565600',
     address: 'Overalstraat 123, 1234 AB Beekstad',
     website: 'www.geweldigewebsite.nl',
-    profileImage: '/ander.png',
+    profileImage: '/andree.png',
     summary:
       'Ik ben een robotica-ingenieur met kennis in computerwetenschap en elektrotechniek. Ik heb zowel in academische als zakelijke omgevingen gewerkt.'
   },

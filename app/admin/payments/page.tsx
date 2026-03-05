@@ -1,5 +1,6 @@
 ﻿import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
+import { isAdminRole } from '@/lib/auth/isAdminRole';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import { PaymentsManager } from '@/components/admin/PaymentsManager';
@@ -10,7 +11,7 @@ const sql = neon(process.env.DATABASE_URL!);
 export default async function AdminPaymentsPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user?.role !== 'admin') {
+  if (!session || !isAdminRole(session.user?.role)) {
     redirect('/login');
   }
 
@@ -56,7 +57,9 @@ export default async function AdminPaymentsPage() {
     pending: normalizedPayments.filter((p) => p.status === 'pending').length,
     approved: normalizedPayments.filter((p) => p.status === 'approved').length,
     rejected: normalizedPayments.filter((p) => p.status === 'rejected').length,
-    totalRevenue: normalizedPayments.filter((p) => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0),
+    totalRevenue: normalizedPayments
+      .filter((p) => p.status === 'approved')
+      .reduce((sum, p) => sum + p.amount, 0),
   };
 
   return (
@@ -70,7 +73,11 @@ export default async function AdminPaymentsPage() {
         <StatCard title="قيد المراجعة" value={stats.pending} tone="amber" />
         <StatCard title="مقبولة" value={stats.approved} tone="emerald" />
         <StatCard title="مرفوضة" value={stats.rejected} tone="rose" />
-        <StatCard title="الإيراد" value={`${stats.totalRevenue.toLocaleString('ar-SY')} ل.س`} tone="violet" />
+        <StatCard
+          title="الإيراد"
+          value={`${stats.totalRevenue.toLocaleString('ar-SY')} ل.س`}
+          tone="violet"
+        />
       </section>
 
       <PaymentsManager payments={normalizedPayments} />
@@ -78,7 +85,15 @@ export default async function AdminPaymentsPage() {
   );
 }
 
-function StatCard({ title, value, tone = 'slate' }: { title: string; value: string | number; tone?: 'slate' | 'amber' | 'emerald' | 'rose' | 'violet' }) {
+function StatCard({
+  title,
+  value,
+  tone = 'slate',
+}: {
+  title: string;
+  value: string | number;
+  tone?: 'slate' | 'amber' | 'emerald' | 'rose' | 'violet';
+}) {
   const toneMap: Record<string, string> = {
     slate: 'text-slate-700 dark:text-slate-200',
     amber: 'text-amber-700 dark:text-amber-300',
@@ -94,4 +109,3 @@ function StatCard({ title, value, tone = 'slate' }: { title: string; value: stri
     </article>
   );
 }
-

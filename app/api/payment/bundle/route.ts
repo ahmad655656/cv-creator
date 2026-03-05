@@ -47,12 +47,17 @@ async function ensureBundleTemplateRow() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { amount, senderNumber, transactionDate, screenshot } = body;
+    const { amount, senderNumber, transactionDate, screenshot } = body as {
+      amount?: number;
+      senderNumber?: string;
+      transactionDate?: string;
+      screenshot?: string | null;
+    };
 
     if (Number(amount) !== BUNDLE_AMOUNT) {
       return NextResponse.json({ error: 'مبلغ غير صحيح' }, { status: 400 });
@@ -90,41 +95,43 @@ export async function POST(request: Request) {
     `;
 
     const currentUserId = Number.parseInt(session.user.id, 10);
+    const paymentId = Number(newPayment[0].id);
 
     try {
-      await notifyUser(currentUserId, {
-        type: 'bundle_payment_pending',
-        title: 'تم استلام طلب الباقة',
-        message: 'تم إرسال طلب شراء الباقة الشاملة وهو الآن قيد المراجعة.',
-        link: '/dashboard',
-        senderUserId: currentUserId,
-        metadata: {
-          paymentId: newPayment[0].id,
-          amount: BUNDLE_AMOUNT,
-          paymentType: 'bundle',
-          status: 'pending'
-        }
-      });
-
-      await notifyAdmins({
-        type: 'bundle_payment_submitted',
-        title: 'طلب باقة شامل جديد',
-        message: `طلب شراء باقة شامل بقيمة ${BUNDLE_AMOUNT} ل.س`,
-        link: '/admin/payments',
-        senderUserId: currentUserId,
-        metadata: {
-          paymentId: newPayment[0].id,
-          amount: BUNDLE_AMOUNT,
-          paymentType: 'bundle'
-        }
-      });
+      await Promise.all([
+        notifyUser(currentUserId, {
+          type: 'bundle_payment_pending',
+          title: 'تم استلام طلب الباقة الشاملة',
+          message: 'تم إرسال طلبك بنجاح وهو الآن قيد المراجعة.',
+          link: '/dashboard',
+          senderUserId: currentUserId,
+          metadata: {
+            paymentId,
+            amount: BUNDLE_AMOUNT,
+            paymentType: 'bundle',
+            status: 'pending'
+          }
+        }),
+        notifyAdmins({
+          type: 'bundle_payment_submitted',
+          title: 'طلب باقة شاملة جديد',
+          message: `تم استلام طلب شراء باقة شاملة بقيمة ${BUNDLE_AMOUNT} ل.س`,
+          link: '/admin/payments',
+          senderUserId: currentUserId,
+          metadata: {
+            paymentId,
+            amount: BUNDLE_AMOUNT,
+            paymentType: 'bundle'
+          }
+        })
+      ]);
     } catch (notifyError) {
       console.error('Bundle payment notifications error:', notifyError);
     }
 
     return NextResponse.json({
       success: true,
-      paymentId: newPayment[0].id,
+      paymentId,
       message: 'تم إرسال طلب شراء الباقة بنجاح. سيتم تفعيلها خلال 24 ساعة'
     });
   } catch (error) {

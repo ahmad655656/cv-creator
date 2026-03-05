@@ -22,6 +22,7 @@ import {
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { NotificationBell } from '@/components/layout/NotificationBell';
+import { isAdminRole } from '@/lib/auth/isAdminRole';
 
 type NavLink = {
   href: string;
@@ -51,7 +52,7 @@ export function Header() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  const isAdmin = session?.user?.role === 'admin';
+  const isAdmin = isAdminRole(session?.user?.role);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8);
@@ -280,4 +281,6 @@ export function Header() {
     </header>
   );
 }
+
+
 
